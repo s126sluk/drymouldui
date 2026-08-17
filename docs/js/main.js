@@ -229,6 +229,37 @@
       });
     }
 
+    // [CP4 v11 port, 17 Aug] Stops Vimeo's end-of-video related-videos screen
+    // from offering exits off the landing page (paid-traffic leakage). On
+    // 'ended', unload() returns the player to its poster + play button.
+    // Guarded to the mould page. Belt-and-braces: ALSO set each video's end
+    // screen to "Thumbnail" in Vimeo (Player -> End screen) — removes the
+    // related grid at the source.
+    function vimeoEndstop() {
+      if (!document.body.classList.contains('page-mould')) return;
+      const frames = document.querySelectorAll('iframe[src*="player.vimeo.com"]');
+      if (!frames.length) return;
+
+      const bind = () => frames.forEach(f => {
+        try {
+          const player = new window.Vimeo.Player(f);
+          player.on('ended', () => player.unload());
+        } catch (e) {
+          /* non-fatal */
+        }
+      });
+
+      if (window.Vimeo && window.Vimeo.Player) {
+        bind();
+        return;
+      }
+
+      const s = document.createElement('script');
+      s.src = 'https://player.vimeo.com/api/player.js';
+      s.onload = bind;
+      document.head.appendChild(s);
+    }
+
     // [CP4 v5-spec, 11 Aug] Package picker + shared order modal.
     // Locked behaviours (cp4_handoff_2026-08-11_landing-modal-v5-spec):
     //  1. Any picker Select opens the modal showing BOTH packages, the clicked one
@@ -236,25 +267,38 @@
     //  2. The header Book Now ([data-mpk-open]) is a pure modal trigger with
     //     drySafe Care preselected.
     //  3. Rooms stepper reinstated; COUNT derives the tier (room-SIZE stays dead):
-    //     1 room = single rate · 2–3 rooms = per-room 2–3 rate · 4+ = per-room 4+.
+    //     1 room = single rate · 2+ rooms = per-room 2+ rate (two-tier locked 13 Aug).
     // Hand-off adds rooms=<N> to the funnel deep-link. Upsells stay post-payment
     // in the funnel — never on the landing page. Guarded: inert on water pages.
     //
     // RATES: approved master-sheet mould tab, ex GST, per room — swappable
     // constants pending the post-refinement price confirmation (Care composition
     // changed 10 Aug). SRL is dropped for mould per the spec default.
-    const RATES = {
+    // [CP4 v11 port, 17 Aug] PRE-SPRING PROMO: 17% off BASE packages only
+    // (upsells unchanged). LIST_RATES are the standing sheet rates, ex GST;
+    // the live rate is derived. Flip PROMO.active to false (and strip the
+    // promo seals/was-prices from the HTML) to end the promo. DB/Stripe must
+    // carry the SAME discounted base prices so landing and checkout agree.
+    //
+    // Two-tier locked 13 Aug: single room / 2+ rooms. The former 4+ room
+    // tier is retired — do not reintroduce a third tier.
+    const PROMO = {
+      name: 'Pre-Spring',
+      pct: 17,
+      active: true
+    };
+    const LIST_RATES = {
       basic: {
         single: 425,
-        two_three: 387,
-        four_plus: 445
+        two_plus: 387
       },
       care: {
         single: 590,
-        two_three: 552,
-        four_plus: 610
+        two_plus: 552
       }
     };
+    const _round2 = n => Math.round(n * 100) / 100;
+    const RATES = PROMO.active ? Object.fromEntries(Object.entries(LIST_RATES).map(([pkg, t]) => [pkg, Object.fromEntries(Object.entries(t).map(([k, v]) => [k, _round2(v * (1 - PROMO.pct / 100))]))])) : LIST_RATES;
     const MAX_ROOMS = 6; // spec 2026-08-14 §6: rooms 1-6
     // Maps Platform API key — public by design for client-side Maps JS,
     // access is scoped via HTTP referrer restriction on the key itself, not secrecy.
@@ -305,8 +349,7 @@
     function rateFor(pkg, rooms) {
       const t = RATES[pkg];
       if (rooms <= 1) return t.single;
-      if (rooms <= 3) return t.two_three;
-      return t.four_plus;
+      return t.two_plus;
     }
     function mouldPackages() {
       const roots = Array.from(document.querySelectorAll('[data-mpk-picker]'));
@@ -320,7 +363,10 @@
         tracking: trackingParams()
       };
 
-      const money = n => '$' + n.toLocaleString('en-AU');
+      const money = n => '$' + n.toLocaleString('en-AU', Number.isInteger(n) ? undefined : {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      });
 
       const q = sel => modal.querySelector(sel);
 
@@ -344,7 +390,7 @@
         });
         q('[data-modal="count"]').textContent = state.rooms;
         const rate = rateFor(state.pkg, state.rooms);
-        const total = rate * state.rooms;
+        const total = Math.round(rate * state.rooms * 100) / 100;
         q('[data-modal="mathline"]').textContent = `${state.rooms} room${state.rooms === 1 ? '' : 's'} × ${money(rate)} = ${money(total)} + GST`;
         q('[data-modal="total"]').textContent = money(total) + ' + GST';
       }
@@ -566,7 +612,8 @@
       notification();
       clickforward();
       smsdeeplink();
-      mouldPackages(); // AOS.init({
+      mouldPackages();
+      vimeoEndstop(); // AOS.init({
       // 	offset: 80,
       // 	duration: 200,
       // 	easing: 'ease-in',
