@@ -274,11 +274,13 @@
     // RATES: approved master-sheet mould tab, ex GST, per room — swappable
     // constants pending the post-refinement price confirmation (Care composition
     // changed 10 Aug). SRL is dropped for mould per the spec default.
-    // [CP4 v11 port, 17 Aug] PRE-SPRING PROMO: 17% off BASE packages only
-    // (upsells unchanged). LIST_RATES are the standing sheet rates, ex GST;
-    // the live rate is derived. Flip PROMO.active to false (and strip the
-    // promo seals/was-prices from the HTML) to end the promo. DB/Stripe must
-    // carry the SAME discounted base prices so landing and checkout agree.
+    // [CP4 v11 port, 17 Aug; Basic reverted to full price 18 Aug] PRE-SPRING
+    // PROMO: 17% off Care only — Basic is back to full list price. LIST_RATES
+    // are the standing sheet rates, ex GST; RATES derives Care's live
+    // (discounted) rate and passes Basic through unmodified. Flip PROMO.active
+    // to false (and strip Care's promo seal/was-price from the HTML) to end
+    // the promo entirely. DB/Stripe must carry the SAME Care discount so
+    // landing and checkout agree.
     //
     // Two-tier locked 13 Aug: single room / 2+ rooms. The former 4+ room
     // tier is retired — do not reintroduce a third tier.
@@ -298,7 +300,10 @@
       }
     };
     const _round2 = n => Math.round(n * 100) / 100;
-    const RATES = PROMO.active ? Object.fromEntries(Object.entries(LIST_RATES).map(([pkg, t]) => [pkg, Object.fromEntries(Object.entries(t).map(([k, v]) => [k, _round2(v * (1 - PROMO.pct / 100))]))])) : LIST_RATES;
+    const RATES = {
+      basic: LIST_RATES.basic,
+      care: PROMO.active ? Object.fromEntries(Object.entries(LIST_RATES.care).map(([k, v]) => [k, _round2(v * (1 - PROMO.pct / 100))])) : LIST_RATES.care
+    };
     const MAX_ROOMS = 6; // spec 2026-08-14 §6: rooms 1-6
     // Maps Platform API key — public by design for client-side Maps JS,
     // access is scoped via HTTP referrer restriction on the key itself, not secrecy.
