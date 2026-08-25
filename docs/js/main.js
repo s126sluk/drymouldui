@@ -351,6 +351,22 @@
       return out;
     }
 
+    // [CP3 instrumentation, 25 Aug] Booking-funnel events -> PostHog project 450660.
+    // The mould page is a SINGLE-PAGE funnel: landing -> modal -> Stripe. There is
+    // no /get-started hop, so there is no funnel_started event here — that belongs
+    // to the water funnel app. THESE events are the mould funnel.
+    // Best-effort by design: if PostHog is blocked, slow, or errors, the booking
+    // flow must be completely unaffected.
+    function track(event, props) {
+      try {
+        if (window.posthog && typeof window.posthog.capture === 'function') {
+          window.posthog.capture(event, props || {});
+        }
+      } catch (e) {
+        /* analytics must never break checkout */
+      }
+    }
+
     function rateFor(pkg, rooms) {
       const t = RATES[pkg];
       if (rooms <= 1) return t.single;
@@ -400,33 +416,88 @@
         q('[data-modal="total"]').textContent = money(total) + ' + GST';
       }
 
-      function openModal(pkg) {
+      // Common properties on every booking event, so any step can be segmented by
+      // package/rooms/value and by paid-vs-organic without a join.
+      function eventProps(extra) {
+        const rate = rateFor(state.pkg, state.rooms);
+        const base = {
+          package: state.pkg,
+          rooms: state.rooms,
+          rate_ex_gst: rate,
+          total_ex_gst: Math.round(rate * state.rooms * 100) / 100,
+          property_type: state.propertyType,
+          is_paid_click: Boolean(state.tracking.gclid || state.tracking.gbraid || state.tracking.wbraid),
+          gclid: state.tracking.gclid || null
+        };
+        return Object.assign(base, extra || {});
+      }
+
+      // Fires once per modal-open, on the first real edit the customer makes.
+      let formStarted = false;
+
+      function markFormStarted(field) {
+        if (formStarted) return;
+        formStarted = true;
+        track('booking_form_started', eventProps({
+          first_field: field
+        }));
+      }
+
+      let submitted = false;
+
+      function openModal(pkg, source) {
         state.pkg = pkg;
         paintModal();
         modal.hidden = false;
         document.body.style.overflow = 'hidden';
+        formStarted = false;
+        submitted = false;
+        // THE key event: the customer pressed a green "Book now".
+        track('booking_modal_opened', eventProps({
+          open_source: source || 'unknown'
+        }));
       } // 1. Picker Select buttons → modal, clicked package highlighted
 
 
-      roots.forEach(root => root.querySelectorAll('[data-select]').forEach(btn => btn.addEventListener('click', () => openModal(btn.dataset.select)))); // 2. Header Book Now → modal, Care preselected (anchor fallback without JS)
+      roots.forEach(root => root.querySelectorAll('[data-select]').forEach(btn => btn.addEventListener('click', () => openModal(btn.dataset.select, 'package_card')))); // 2. Header Book Now → modal, Care preselected (anchor fallback without JS)
 
       document.querySelectorAll('[data-mpk-open]').forEach(el => el.addEventListener('click', e => {
         e.preventDefault();
-        openModal(el.dataset.mpkOpen || 'care');
+        openModal(el.dataset.mpkOpen || 'care', 'header');
       })); // Switch package inside the modal
 
       modal.querySelectorAll('[data-pkg]').forEach(btn => btn.addEventListener('click', () => {
+        const from = state.pkg;
         state.pkg = btn.dataset.pkg;
         paintModal();
+        if (from !== state.pkg) {
+          markFormStarted('package');
+          track('booking_package_switched', eventProps({
+            switched_from: from
+          }));
+        }
       })); // 3. Rooms stepper — count drives the tier
 
       modal.querySelectorAll('[data-step]').forEach(btn => btn.addEventListener('click', () => {
+        const before = state.rooms;
         state.rooms = Math.min(MAX_ROOMS, Math.max(1, state.rooms + Number(btn.dataset.step)));
         paintModal();
+        if (before !== state.rooms) {
+          markFormStarted('rooms');
+          track('booking_rooms_changed', eventProps({
+            rooms_from: before
+          }));
+        }
       }));
       modal.querySelectorAll('[data-close]').forEach(el => el.addEventListener('click', () => {
         modal.hidden = true;
         document.body.style.overflow = '';
+        // Closed without reaching Stripe — this is the drop-off signal.
+        if (!submitted) {
+          track('booking_modal_abandoned', eventProps({
+            had_started_form: formStarted
+          }));
+        }
       })); // 4. Property type selector — required, House/Apartment (exact strings)
 
       modal.querySelectorAll('[data-proptype]').forEach(btn => btn.addEventListener('click', () => {
@@ -436,7 +507,15 @@
           b.classList.toggle('is-selected', on);
           b.setAttribute('aria-pressed', String(on));
         });
-      })); // 5. Google Places autocomplete on the address field — structured
+        markFormStarted('property_type');
+      }));
+
+      // First keystroke in any detail field also counts as starting the form.
+      // 'input' fires once per field per open thanks to the formStarted latch.
+      ['name', 'phone', 'email', 'address'].forEach(fieldName => {
+        const field = modal.querySelector(`[name="${fieldName}"]`);
+        if (field) field.addEventListener('input', () => markFormStarted(fieldName));
+      }); // 5. Google Places autocomplete on the address field — structured
       // components only, postcode from the postal_code component, never
       // regexed off the formatted string (spec §1, matches water's AddressCapture).
 
@@ -543,12 +622,18 @@
 
         if (!state.propertyType) {
           showNotice('Please select a property type.');
+          track('booking_checkout_blocked', eventProps({
+            reason: 'missing_property_type'
+          }));
           return;
         }
 
         const addr = state.address;
         if (!addr || !addr.street_number || !addr.route || !addr.locality || !addr.state || !addr.postcode) {
           showNotice('Please select a complete address from the dropdown suggestions.');
+          track('booking_checkout_blocked', eventProps({
+            reason: 'incomplete_address'
+          }));
           return;
         }
 
@@ -571,6 +656,10 @@
 
         const payBtn = modal.querySelector('.mpk-modal__pay');
         payBtn.disabled = true;
+        // Customer pressed "Continue to secure checkout" and passed every
+        // client-side gate — the last event we control before Stripe.
+        submitted = true;
+        track('booking_checkout_submitted', eventProps());
 
         fetch(CHECKOUT_ENDPOINT, {
           method: 'POST',
@@ -588,6 +677,9 @@
           data
         }) => {
           if (ok && data.checkout_url) {
+            // Reached Stripe. This is the true end of the on-page funnel;
+            // everything past here is Stripe + the webhook -> Supabase.
+            track('booking_checkout_redirect', eventProps());
             window.location.href = data.checkout_url;
             return;
           }
@@ -595,12 +687,27 @@
             // Hard gate: server backstop rejected the postcode. Left disabled —
             // only a fresh address selection (place_changed) lifts this.
             showNotice('Sorry, we do not service your area.');
+            submitted = false;
+            track('booking_checkout_failed', eventProps({
+              reason: 'not_serviceable',
+              status: status
+            }));
             return;
           }
           showNotice('Something went wrong, please try again.');
           payBtn.disabled = false;
+          submitted = false;
+          track('booking_checkout_failed', eventProps({
+            reason: 'server_error',
+            status: status
+          }));
         }).catch(() => {
           showNotice('Something went wrong, please try again.');
+          submitted = false;
+          track('booking_checkout_failed', eventProps({
+            reason: 'network_error',
+            status: null
+          }));
           payBtn.disabled = false;
         });
       });
