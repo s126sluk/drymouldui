@@ -1,3 +1,2 @@
-# staging block — delete at launch
 User-agent: *
-Disallow: /
+Allow: /
