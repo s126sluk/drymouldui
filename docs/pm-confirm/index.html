@@ -69,11 +69,24 @@
   .kv dd{margin:0;font-weight:500}
   .group{margin-bottom:18px}
   .group h3{font-size:13px;font-weight:600;color:var(--grey);text-transform:none;margin:0 0 10px;letter-spacing:.01em}
-  .option{display:flex;justify-content:space-between;align-items:baseline;gap:12px;border:1.5px solid var(--blue);background:var(--lightblue);border-radius:10px;padding:14px 16px;margin-bottom:18px}
-  .option b{font-size:16px}
-  .option .price{font-weight:600;white-space:nowrap}
-  .option .price small{font-weight:400;color:var(--grey);font-size:13px}
-  .option .sub{display:block;font-size:13px;color:var(--grey);font-weight:400;margin-top:2px}
+  /* Chosen package card — icon checklist (concept A). Colours are bound to this
+     page's themed tokens rather than the concept file's fixed light-mode values,
+     so the card follows the light/dark theme like the rest of the page. */
+  .pkg{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px 20px 18px;margin-bottom:18px}
+  .pkg.popular{border:2px solid var(--blue)}
+  .pkg-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+  .pkg-head h3{font-size:16.5px;font-weight:700;margin:0;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .pkg .chip{background:var(--lightgreen);color:var(--green);font-size:11px;font-weight:600;padding:2px 8px;border-radius:999px;white-space:nowrap}
+  .pkg .per{margin:2px 0 0;font-size:12.5px;color:var(--grey)}
+  .pkg .price{text-align:right;white-space:nowrap}
+  .pkg .price .amt{font-size:19px;font-weight:700}
+  .pkg .price .ex{font-size:11.5px;color:var(--grey)}
+  ul.inc{list-style:none;margin:14px 0 0;padding:0;display:grid;gap:8px}
+  ul.inc li{display:flex;align-items:center;gap:10px;font-size:13.5px;color:var(--dark)}
+  .ib{flex:none;width:30px;height:30px;border-radius:8px;background:var(--lightblue);color:var(--blue);display:inline-flex;align-items:center;justify-content:center}
+  .ib svg{width:17px;height:17px}
+  li.add .ib{background:var(--lightgreen);color:var(--green)}
+  .pkg .note{margin:12px 0 0;font-size:12px;color:var(--grey)}
 
   .actions{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:8px}
   .btn{display:inline-flex;align-items:center;justify-content:center;font:inherit;font-weight:600;font-size:16px;padding:13px 22px;border-radius:8px;border:0;cursor:pointer;text-decoration:none;transition:background .15s}
@@ -149,6 +162,36 @@
 </head>
 <body>
 
+<!-- Icon symbols for the package card. Inline SVG is fine on a web page; the
+     report email template must swap these for hosted PNGs, as most email
+     clients strip inline SVG. -->
+<svg style="display:none" xmlns="http://www.w3.org/2000/svg">
+  <symbol id="i-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/>
+  </symbol>
+  <symbol id="i-drop" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M12 3c3.4 3.9 6 7.3 6 10.4A6 6 0 0 1 6 13.4C6 10.3 8.6 6.9 12 3Z"/><path d="M9.4 14.2a2.6 2.6 0 0 0 2.6 2.6"/>
+  </symbol>
+  <symbol id="i-camera" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/>
+  </symbol>
+  <symbol id="i-doc" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v5h6"/><path d="M16 13H8"/><path d="M16 17H8"/>
+  </symbol>
+  <symbol id="i-vacuum" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M19.5 4h-3a4.5 4.5 0 0 0-4.5 4.5V16"/><rect x="4.5" y="16" width="15" height="4" rx="1.2"/>
+  </symbol>
+  <symbol id="i-spray" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M3 3h.01"/><path d="M7 5h.01"/><path d="M11 7h.01"/><path d="M3 7h.01"/><path d="M7 9h.01"/><path d="M3 11h.01"/><rect width="4" height="4" x="15" y="5"/><path d="m19 9 2 2v10c0 .6-.4 1-1 1h-6c-.6 0-1-.4-1-1V11l2-2"/><path d="m13 14 8-2"/><path d="m13 19 8-2"/>
+  </symbol>
+  <symbol id="i-fan" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M10.827 16.379a6.082 6.082 0 0 1-8.618-7.002l5.412 1.45a6.082 6.082 0 0 1 7.002-8.618l-1.45 5.412a6.082 6.082 0 0 1 8.618 7.002l-5.412-1.45a6.082 6.082 0 0 1-7.002 8.618l1.45-5.412Z"/><path d="M12 12v.01"/>
+  </symbol>
+  <symbol id="i-chair" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M19 9V6a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v3"/><path d="M3 16a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-5a2 2 0 0 0-4 0v2H7v-2a2 2 0 0 0-4 0Z"/><path d="M5 18v2"/><path d="M19 18v2"/>
+  </symbol>
+</svg>
+
 <header class="hdr">
   <div class="hdr-in">
     <a class="logo" href="#" aria-label="DrySafe">
@@ -171,7 +214,7 @@
     <div class="sec-head"><span class="n">1</span><h2>Your request</h2><button class="edit" type="button" data-reopen="s1">Change</button></div>
     <div class="summary-line" id="s1-summary"></div>
     <div class="sec-body">
-      <div class="option"><div><b id="opt-name"></b><span class="sub" id="opt-sub"></span></div><div class="price"><span id="opt-price"></span> <small>ex GST</small></div></div>
+      <div id="pkg-card"></div>
       <div class="group">
         <h3>Property</h3>
         <dl class="kv">
@@ -250,7 +293,7 @@
 </table>
 <h5>3. SCOPE OF WORK LIMITATIONS</h5>
 <p>Your package clearly stipulates what is included for each room you have paid for. No additional services will be provided unless through a good faith gesture of generosity by DrySafe Response Group. DrySafe Response Group is a registered brand of Ekon Enterprises Pty Ltd. DrySafe Response Group addresses surface mould on the surfaces included in your selected package only and is not responsible for pre-existing conditions, structural defects, or consequential issues discovered during works.</p>
-<p>Mould remediation works are limited to visible and accessible surfaces expressly included in your selected package (wall surfaces under Basic Savings and drySafe Care; window sills, door / window tracks and ceiling surfaces only where the HomeProtect upgrade is selected). No invasive or structural works are included: DrySafe Response Group will not remove, open, or cut plasterboard, wall linings, flooring or other building materials, and will not perform works within wall cavities, ceiling voids, subfloors or other concealed spaces. The identification and rectification of moisture sources (including but not limited to leaks, rising damp, condensation, and ventilation deficiencies) is not included in any mould package and remains your responsibility.</p>
+<p>Mould remediation works are limited to visible and accessible surfaces expressly included in your selected package (wall surfaces under Basic Savings and DrySafe Care; window sills, door / window tracks and ceiling surfaces only where the HomeProtect upgrade is selected). No invasive or structural works are included: DrySafe Response Group will not remove, open, or cut plasterboard, wall linings, flooring or other building materials, and will not perform works within wall cavities, ceiling voids, subfloors or other concealed spaces. The identification and rectification of moisture sources (including but not limited to leaks, rising damp, condensation, and ventilation deficiencies) is not included in any mould package and remains your responsibility.</p>
 <p>You acknowledge that you have been presented with a full range of options for DrySafe Response Group's services and scope of works and have made your package selection independently.</p>
 <h5>5. EQUIPMENT OPERATION — NO EQUIPMENT REMAINS ON SITE</h5>
 <p>All equipment used in the delivery of mould remediation packages (including air filtration devices and dehumidifiers, where included in your package) operates during the technician's attendance only, for a minimum of 15 minutes and a maximum of 2 hours of operation, and is removed on completion of the visit. No equipment remains on site after the works, there is no equipment hire period, and no return collection visit is required or scheduled.</p>
@@ -379,12 +422,63 @@
 ---------------------------------------------------------------- */
 const API_BASE = 'https://drysafeapi.vercel.app';
 const API = API_BASE.replace(/\/$/, '') + '/api/cp1/pm';
+/* Package inclusions shown on the card. Icon ids match the symbol sprite at the
+   top of the page; `add` marks the two DrySafe Care extras (green icon tile). */
+const INC = {
+  assess:  { icon:'i-search', text:'Visual mould assessment of each affected room' },
+  moisture:{ icon:'i-drop',   text:'Moisture analytics and humidity readings' },
+  photos:  { icon:'i-camera', text:'Photographs of each affected surface' },
+  report:  { icon:'i-doc',    text:'Written report with a recommended scope of works' },
+  vacuum:  { icon:'i-vacuum', text:'Surface HEPA vacuum of vertical surfaces' },
+  spray:   { icon:'i-spray',  text:"TGA-listed antimicrobial applied per the manufacturer's directions" },
+  ba:      { icon:'i-camera', text:'Before and after photographs of every treated surface' },
+  works:   { icon:'i-doc',    text:'Works report on completion' },
+  air:     { icon:'i-fan',    text:'Air filtration device operating for the duration of the works', add:true },
+  furniture:{icon:'i-chair',  text:'Furniture protection with plastic sheeting', add:true }
+};
 const OPTION_META = {
-  assessment:{ name:'Mould Assessment Only', sub:'Visual assessment, photographs and written report. No treatment on this visit.', flat:true },
-  basic:{ name:'Basic Savings', sub:'HEPA vacuum and TGA-listed antimicrobial on vertical surfaces, before and after photos, works report.' },
-  care:{ name:'drySafe Care', sub:'Basic Savings plus air filtration device during works and furniture protection.' }
+  assessment:{
+    name:'Mould Assessment Only', flat:true,
+    items:[INC.assess, INC.moisture, INC.photos, INC.report],
+    note:'No treatment is carried out on this visit.'
+  },
+  basic:{
+    name:'Basic Savings',
+    items:[INC.assess, INC.moisture, INC.vacuum, INC.spray, INC.ba, INC.works]
+  },
+  care:{
+    name:'DrySafe Care', popular:true,
+    items:[INC.assess, INC.moisture, INC.vacuum, INC.spray, INC.ba, INC.works, INC.air, INC.furniture],
+    note:'Suited to occupied tenancies where furnishings stay in place.'
+  }
 };
 function money(n){ n = Number(n); return '$' + (Number.isInteger(n) ? n.toLocaleString('en-AU') : n.toLocaleString('en-AU',{minimumFractionDigits:2,maximumFractionDigits:2})); }
+function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+/* Builds the chosen package card. Price and room count come from the server's
+   snapshot of the quote (r.prices[opt], r.rooms) — never computed here. */
+const ROOM_WORDS = ['','one','two','three','four','five','six','seven','eight','nine'];
+function roomWord(n){ n = Number(n); return ROOM_WORDS[n] || String(n); }
+function packageCard(meta, total, rooms){
+  const per = meta.flat
+    ? 'Flat fee, whatever the room count'
+    : (Number(rooms) === 1
+        ? 'Price for the affected room'
+        : 'Price for the ' + roomWord(rooms) + ' affected rooms');
+  const items = meta.items.map(it =>
+    '<li' + (it.add ? ' class="add"' : '') + '>'
+    + '<span class="ib"><svg><use href="#' + esc(it.icon) + '"/></svg></span>'
+    + esc(it.text) + '</li>').join('');
+  return '<article class="pkg' + (meta.popular ? ' popular' : '') + '">'
+    + '<div class="pkg-head"><div>'
+    + '<h3>' + esc(meta.name) + (meta.popular ? ' <span class="chip">Most popular</span>' : '') + '</h3>'
+    + '<p class="per">' + esc(per) + '</p></div>'
+    + '<div class="price"><span class="amt">' + esc(money(total)) + '</span> <span class="ex">ex GST</span></div>'
+    + '</div>'
+    + '<ul class="inc">' + items + '</ul>'
+    + (meta.note ? '<p class="note">' + esc(meta.note) + '</p>' : '')
+    + '</article>';
+}
 const $ = s => document.querySelector(s);
 const params = new URLSearchParams(location.search);
 const hparams = new URLSearchParams(location.hash.replace(/^#/,''));
@@ -414,9 +508,7 @@ function render(r){
   req = r;
   total = r.prices[opt];
   $('#ref-top').textContent = r.ref; $('#addr-top').textContent = r.address;
-  $('#opt-name').textContent = OPTION_META[opt].name;
-  $('#opt-sub').textContent = OPTION_META[opt].sub + ' ' + (OPTION_META[opt].flat ? 'Flat fee.' : 'Priced for ' + r.rooms + (r.rooms===1 ? ' room.' : ' rooms.'));
-  $('#opt-price').textContent = money(total);
+  $('#pkg-card').innerHTML = packageCard(OPTION_META[opt], total, r.rooms);
   $('#v-address').textContent = r.address;
   $('#v-signs').textContent = r.signs && r.signs.length ? r.signs.map((s,i)=> i===0 ? s : s.toLowerCase()).join(', ') : 'None reported';
   $('#v-rooms').textContent = r.rooms + (r.rooms===1 ? ' room' : ' rooms');
@@ -428,11 +520,11 @@ function render(r){
 
 async function load(){
   if(!/^DS-PM-\d{6}-\d{4}$/.test(REF) || !/^[a-f0-9]{32}$/.test(TOKEN)){
-    showStatus("This link isn't valid", 'Open the confirmation from one of the Approve buttons in your mould risk report email, or start a new request.', true); return;
+    showStatus("This link isn't valid", 'Open the confirmation from one of the Approve buttons in your Mould Remediation Quote email, or start a new request.', true); return;
   }
   try{
     const res = await fetch(API + '/request/' + encodeURIComponent(REF) + '?t=' + encodeURIComponent(TOKEN), { headers:{ Accept:'application/json' } });
-    if(res.status === 404){ showStatus("This link isn't valid", 'Open the confirmation from one of the Approve buttons in your mould risk report email, or start a new request.', true); return; }
+    if(res.status === 404){ showStatus("This link isn't valid", 'Open the confirmation from one of the Approve buttons in your Mould Remediation Quote email, or start a new request.', true); return; }
     if(!res.ok) throw new Error('load_failed');
     const r = await res.json();
     if(r.status === 'approved'){ showSuccess(r, r.approved); return; }
