@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex">
-<title>DrySafe priority partner portal — request a mould risk report</title>
+<title>DrySafe priority partner portal — request a Mould Remediation Quote</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@500;600&display=swap" rel="stylesheet">
@@ -263,7 +263,7 @@
     <div class="pane hidden" id="done">
       <div class="tick"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#228B22" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5 5L20 7"/></svg></div>
       <h2>Request submitted</h2>
-      <p class="h2-sub">Your mould risk report is on its way to <b id="done-email"></b>.</p>
+      <p class="h2-sub">Your Mould Remediation Quote is on its way to <b id="done-email"></b>.</p>
       <div class="summary" id="done-summary"></div>
       <ol class="next">
         <li>Check your inbox for the report with options and indicative pricing.</li>
@@ -486,7 +486,7 @@ async function submit(){
 $('#again').addEventListener('click',()=>{
   Object.assign(state,{address:'',signs:[],rooms:1,name:'',email:'',phone:''});
   $('#step1').reset(); $('#step2').reset(); setRooms(1);
-  $('#done .h2-sub').innerHTML = 'Your mould risk report is on its way to <b id="done-email"></b>.';
+  $('#done .h2-sub').innerHTML = 'Your Mould Remediation Quote is on its way to <b id="done-email"></b>.';
   $('#submit-err').hidden = true;
   showStep(1);
 });
