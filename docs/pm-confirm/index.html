@@ -423,8 +423,13 @@ const API = API_BASE.replace(/\/$/, '') + '/api/cp1/pm';
 const INC = {
   assess:  { icon:'i-search', text:'Visual mould assessment of each affected room' },
   moisture:{ icon:'i-drop',   text:'Moisture analytics and humidity readings' },
-  photos:  { icon:'i-camera', text:'Photographs of each affected surface' },
-  report:  { icon:'i-doc',    text:'Written report with a recommended scope of works' },
+  /* Mould Assessment Only rows. Kept separate from assess/moisture above, which
+     Basic Savings and DrySafe Care share by reference — editing those would
+     reword all three cards. */
+  inspect:   { icon:'i-search', text:'Room-by-room inspection, recording whether visible mould is present' },
+  readings:  { icon:'i-drop',   text:'Humidity, moisture and thermal imaging readings for each room' },
+  roomPhotos:{ icon:'i-camera', text:'Photographs of each room assessed' },
+  findings:  { icon:'i-doc',    text:'A written report of the findings, with guidance on recommended next steps' },
   vacuum:  { icon:'i-vacuum', text:'Surface HEPA vacuum of vertical surfaces' },
   spray:   { icon:'i-spray',  text:"TGA-listed antimicrobial applied per the manufacturer's directions" },
   ba:      { icon:'i-camera', text:'Before and after photographs of every treated surface' },
@@ -435,7 +440,7 @@ const INC = {
 const OPTION_META = {
   assessment:{
     name:'Mould Assessment Only', flat:true,
-    items:[INC.assess, INC.moisture, INC.photos, INC.report],
+    items:[INC.inspect, INC.readings, INC.roomPhotos, INC.findings],
     note:'No treatment is carried out on this visit.'
   },
   basic:{
