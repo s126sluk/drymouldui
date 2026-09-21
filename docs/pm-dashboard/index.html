@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="robots" content="noindex, nofollow" />
+<title>Property manager pipeline | DrySafe</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    box-sizing: border-box;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+
+    --bg: #F4F7FA;
+    --panel: #FFFFFF;
+    --ink: #1a1a1a;
+    --muted: #5f6b7a;
+    --rule: #DFE6EE;
+    --track: #E9EEF4;
+    --blue: #2488EA;
+    --blue-dark: #0f6bc8;
+    --amber: #E08A00;
+    --green: #228B22;
+    --blue-soft: #CFE5FB;
+    --hero: #0B2A4E;
+    --hero-ink: #FFFFFF;
+    --hero-muted: #A9C3E0;
+    --hero-lead: #6DB4F7;
+    --hero-warm: #F7B042;
+    --hero-partner: #63D073;
+    --chip-bg: #FFF4DC;
+    --chip-ink: #7A4B00;
+    --red: #C62828;
+    --logo-bg: transparent;
+    --logo-pad: 0px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0D151E;
+      --panel: #15202C;
+      --ink: #EAF0F6;
+      --muted: #9AA8B8;
+      --rule: #263648;
+      --track: #223142;
+      --blue: #4BA0F0;
+      --blue-dark: #7DBBF5;
+      --amber: #F2A93B;
+      --green: #4FBF5C;
+      --blue-soft: #23405E;
+      --hero: #0B2A4E;
+      --chip-bg: #3A2C0E;
+      --chip-ink: #F7D48A;
+      --red: #FF7B72;
+      --logo-bg: #FFFFFF;
+      --logo-pad: 6px 10px;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0D151E;
+    --panel: #15202C;
+    --ink: #EAF0F6;
+    --muted: #9AA8B8;
+    --rule: #263648;
+    --track: #223142;
+    --blue: #4BA0F0;
+    --blue-dark: #7DBBF5;
+    --amber: #F2A93B;
+    --green: #4FBF5C;
+    --blue-soft: #23405E;
+    --hero: #0B2A4E;
+    --chip-bg: #3A2C0E;
+    --chip-ink: #F7D48A;
+    --red: #FF7B72;
+    --logo-bg: #FFFFFF;
+    --logo-pad: 6px 10px;
+  }
+
+  *, *::before, *::after { box-sizing: inherit; }
+  html { scroll-padding-top: env(safe-area-inset-top, 0px); -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+    font-size: 16px;
+    line-height: 1.45;
+    font-feature-settings: "tnum" 1, "cv11" 1;
+  }
+  .page { max-width: 1120px; margin: 0 auto; padding: 16px 16px 40px; }
+
+  /* Top bar */
+  .top { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 4px 2px 14px; }
+  .brand { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+  .logo { display: inline-block; align-self: flex-start; line-height: 0; border-radius: 10px; background: var(--logo-bg); padding: var(--logo-pad); }
+  .logo img { display: block; height: 38px; width: auto; max-width: 100%; }
+  .brand > span:last-child { font-size: 13px; color: var(--muted); }
+
+  /* Passcode gate */
+  [hidden] { display: none !important; }
+  .gate { max-width: 380px; margin: 9vh auto 0; padding: 0 8px; text-align: center; }
+  .gate .logo { align-self: auto; }
+  .gate .logo img { height: 52px; margin: 0 auto; }
+  .gate h1 { margin: 22px 0 4px; font-size: 22px; font-weight: 700; letter-spacing: -0.02em; }
+  .gate p { margin: 0; font-size: 14.5px; color: var(--muted); }
+  .gate form { margin-top: 24px; }
+  .gate label { display: block; font-size: 14px; font-weight: 600; text-align: left; margin-bottom: 8px; }
+  .code {
+    width: 100%; font: inherit; font-size: 30px; font-weight: 700; letter-spacing: 0.42em; text-indent: 0.42em; text-align: center;
+    color: var(--ink); background: var(--panel); border: 1.5px solid var(--rule); border-radius: 14px; padding: 14px 8px; min-height: 64px;
+  }
+  .code::placeholder { color: var(--rule); }
+  .code:focus { outline: none; border-color: var(--blue); box-shadow: 0 0 0 3px color-mix(in srgb, var(--blue) 28%, transparent); }
+  .code.bad { border-color: var(--red); }
+  .gate .err { min-height: 22px; margin-top: 10px; font-size: 14px; font-weight: 600; color: var(--red); text-align: left; }
+  .gate .go {
+    width: 100%; margin-top: 6px; font: inherit; font-size: 16px; font-weight: 700; color: #fff; background: var(--blue);
+    border: 0; border-radius: 14px; min-height: 54px; cursor: pointer;
+  }
+  .gate .go:disabled { opacity: .45; cursor: default; }
+  .gate .go:focus-visible { outline: 3px solid var(--blue-dark); outline-offset: 3px; }
+  .gate .demo { margin-top: 18px; }
+  .foot { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
+  .foot details { flex: 1; min-width: 0; }
+  .lock { margin-top: 14px; flex: none; font-size: 13px; padding: 8px 12px; min-height: 38px; color: var(--muted); }
+  .sync { display: flex; align-items: center; gap: 10px; }
+  .sync small { font-size: 12px; color: var(--muted); text-align: right; line-height: 1.25; white-space: nowrap; }
+  .btn {
+    font: inherit; font-size: 14px; font-weight: 600; color: var(--blue-dark);
+    background: var(--panel); border: 1px solid var(--rule); border-radius: 999px;
+    padding: 9px 14px; min-height: 40px; cursor: pointer; display: inline-flex; align-items: center; gap: 7px;
+  }
+  .btn svg { width: 15px; height: 15px; }
+  .btn.busy svg { animation: spin 0.7s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .btn:focus-visible, .col:focus-visible, summary:focus-visible { outline: 3px solid var(--blue); outline-offset: 2px; }
+
+  .feederr { margin: 0 2px 12px; font-size: 13.5px; font-weight: 600; color: var(--red); }
+
+  .chip {
+    display: inline-block; font-size: 12px; font-weight: 600; color: var(--chip-ink); background: var(--chip-bg);
+    border-radius: 6px; padding: 5px 9px; margin: 0 2px 12px;
+  }
+
+  /* Pipeline hero */
+  .hero { background: var(--hero); color: var(--hero-ink); border-radius: 20px; padding: 22px 20px 20px; }
+  .hero h1 { margin: 0 0 18px; font-size: 15px; font-weight: 600; color: var(--hero-muted); }
+  .stages { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .stage .n { font-size: clamp(38px, 12vw, 64px); font-weight: 800; letter-spacing: -0.04em; line-height: 1; }
+  .stage .l { margin-top: 8px; font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 7px; }
+  .stage .l i { width: 10px; height: 10px; border-radius: 3px; display: inline-block; flex: none; }
+  .stage .d { margin-top: 3px; font-size: 12.5px; color: var(--hero-muted); }
+  .lead i { background: var(--hero-lead); } .warm i { background: var(--hero-warm); } .partner i { background: var(--hero-partner); }
+  .flow { display: flex; gap: 3px; height: 14px; margin-top: 20px; border-radius: 7px; overflow: hidden; }
+  .flow span { min-width: 14px; transform-origin: left center; animation: grow 0.7s cubic-bezier(.2,.7,.2,1) both; }
+  .flow .lead { background: var(--hero-lead); } .flow .warm { background: var(--hero-warm); animation-delay: .08s; } .flow .partner { background: var(--hero-partner); animation-delay: .16s; }
+  @keyframes grow { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+  .hero p { margin: 12px 0 0; font-size: 12.5px; color: var(--hero-muted); }
+
+  /* Panels */
+  .grid { display: grid; gap: 14px; margin-top: 14px; }
+  .panel { background: var(--panel); border: 1px solid var(--rule); border-radius: 16px; padding: 18px 16px 16px; min-width: 0; }
+  .panel h2 { margin: 0; font-size: 17px; font-weight: 700; letter-spacing: -0.01em; }
+  .panel .sub { margin: 3px 0 0; font-size: 13px; color: var(--muted); }
+  .legend { display: flex; flex-wrap: wrap; gap: 6px 16px; margin: 12px 0 0; padding: 0; list-style: none; font-size: 12.5px; color: var(--muted); }
+  .legend li { display: flex; align-items: center; gap: 6px; }
+  .legend i { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+  .readout {
+    margin: 12px 0 0; padding: 9px 12px; background: var(--bg); border-radius: 10px;
+    font-size: 13.5px; min-height: 40px; display: flex; align-items: center; flex-wrap: wrap; gap: 2px 10px;
+  }
+  .readout b { font-weight: 700; }
+  .readout .p { color: var(--green); font-weight: 700; } .readout .r { color: var(--blue-dark); font-weight: 700; }
+
+  /* Column charts, built in HTML so numbers stay crisp on a phone */
+  .chart { display: grid; gap: 2px; margin-top: 10px; align-items: end; }
+  .col {
+    font: inherit; color: inherit; background: none; border: 0; padding: 4px 0 6px; margin: 0; cursor: pointer;
+    display: flex; flex-direction: column; align-items: stretch; border-radius: 10px; min-width: 0;
+  }
+  .col[aria-pressed="true"] { background: var(--bg); }
+  .bars { height: 168px; display: flex; align-items: flex-end; justify-content: center; gap: 3px; border-bottom: 1px solid var(--rule); }
+  .bw { height: 100%; width: 40%; max-width: 22px; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; }
+  .bw.wide { width: 62%; max-width: 34px; }
+  .v { font-size: 11px; font-weight: 700; line-height: 1; margin-bottom: 4px; color: var(--ink); }
+  .bar { width: 100%; min-height: 2px; border-radius: 4px 4px 0 0; transform-origin: bottom; animation: rise .6s cubic-bezier(.2,.7,.2,1) both; }
+  @keyframes rise { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+  .bar.w { background: var(--amber); } .bar.p { background: var(--green); }
+  .bar.zero { background: var(--track); }
+  .bar.tot { background: var(--blue-soft); display: flex; flex-direction: column; justify-content: flex-end; overflow: hidden; }
+  .bar.tot > span { display: block; width: 100%; background: var(--green); }
+  .now .bar.w, .now .bar.p { background-image: repeating-linear-gradient(135deg, rgba(255,255,255,.38) 0 4px, transparent 4px 8px); }
+  .now .bar.tot { background-image: repeating-linear-gradient(135deg, rgba(255,255,255,.5) 0 4px, transparent 4px 8px); }
+  .wk { font-size: 11px; color: var(--muted); text-align: center; margin-top: 6px; line-height: 1.2; }
+  .wk span { display: block; }
+  .wk span:first-child { font-weight: 600; color: var(--ink); }
+  .now .wk { color: var(--ink); font-weight: 700; }
+  .rate { font-size: 11px; font-weight: 700; text-align: center; color: var(--green); margin-top: 3px; }
+  .rate.none { color: var(--muted); font-weight: 500; }
+  .rowlabel { font-size: 11.5px; color: var(--muted); margin: 8px 0 0; }
+
+  /* Approval */
+  .approval { display: grid; gap: 20px; margin-top: 14px; }
+  .ringwrap { display: flex; align-items: center; gap: 18px; }
+  .ring { position: relative; width: 128px; height: 128px; flex: none; }
+  .ring svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+  .ring circle { fill: none; stroke-width: 13; }
+  .ring .t { stroke: var(--track); }
+  .ring .f { stroke: var(--green); stroke-linecap: round; transition: stroke-dashoffset .9s cubic-bezier(.2,.7,.2,1); }
+  .ring div { position: absolute; inset: 0; display: grid; place-items: center; font-size: 32px; font-weight: 800; letter-spacing: -0.03em; }
+  .ringtext b { display: block; font-size: 16px; font-weight: 700; }
+  .ringtext span { display: block; font-size: 13px; color: var(--muted); margin-top: 4px; max-width: 30ch; }
+  .agencies { list-style: none; margin: 0; padding: 0; }
+  .agencies li { padding: 11px 0; border-top: 1px solid var(--rule); }
+  .agencies li:first-child { border-top: 0; padding-top: 2px; }
+  .arow { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+  .arow .nm { font-size: 14.5px; font-weight: 600; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .arow .pc { font-size: 15px; font-weight: 800; }
+  .ameta { font-size: 12.5px; color: var(--muted); margin-top: 1px; }
+  .track { height: 8px; background: var(--track); border-radius: 4px; margin-top: 8px; overflow: hidden; }
+  .track span { display: block; height: 100%; background: var(--green); border-radius: 4px; transform-origin: left; animation: grow .7s cubic-bezier(.2,.7,.2,1) both; }
+
+  details { margin-top: 14px; font-size: 13.5px; color: var(--muted); }
+  details summary { cursor: pointer; font-weight: 600; color: var(--ink); padding: 10px 2px; border-radius: 8px; }
+  details ul { margin: 4px 0 0; padding-left: 18px; max-width: 78ch; }
+  details li { margin: 6px 0; }
+
+  @media (min-width: 860px) {
+    .page { padding: 28px 28px 56px; }
+    .hero { padding: 30px 32px 28px; }
+    .stages { gap: 24px; }
+    .grid.two { grid-template-columns: 1fr 1fr; }
+    .panel { padding: 22px 22px 20px; }
+    .approval { grid-template-columns: 340px 1fr; align-items: start; gap: 36px; }
+    .ringwrap { flex-direction: column; align-items: flex-start; }
+    .v { font-size: 12px; } .wk { font-size: 11.5px; }
+    .logo img { height: 44px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .flow span, .bar, .track span { animation: none; }
+    .ring .f { transition: none; }
+    .btn.busy svg { animation: none; }
+  }
+</style>
+</head>
+<body>
+<main class="page gate" id="gate">
+  <span class="logo"><img src="/img/logo-portal.png" alt="drysafe" width="416" height="132" /></span>
+  <h1>Property manager pipeline</h1>
+  <p>For the DrySafe team only.</p>
+  <form id="gate-form" autocomplete="off" novalidate>
+    <label for="code">Enter the 6-digit passcode</label>
+    <input class="code" id="code" name="code" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="6"
+           autocomplete="one-time-code" placeholder="000000" aria-describedby="gate-err" />
+    <div class="err" id="gate-err" role="alert"></div>
+    <button class="go" id="gate-go" type="submit" disabled>Open dashboard</button>
+  </form>
+</main>
+
+<div class="page" id="app" hidden>
+
+  <header class="top">
+    <div class="brand">
+      <span class="logo"><img src="/img/logo-portal.png" alt="drysafe" width="416" height="132" /></span>
+      <span>Property manager pipeline</span>
+    </div>
+    <div class="sync">
+      <small id="synced">Synced just now</small>
+      <button class="btn" id="refresh" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>
+        <span>Refresh</span>
+      </button>
+    </div>
+  </header>
+
+  <p class="feederr" id="feed-err" role="alert" hidden></p>
+
+  <section class="hero" aria-labelledby="h-pipe">
+    <h1 id="h-pipe">Contacts by status, right now</h1>
+    <div class="stages" id="stages"></div>
+    <div class="flow" id="flow" role="img" aria-label="Share of contacts at each status"></div>
+    <p id="pipe-note"></p>
+  </section>
+
+  <div class="grid">
+    <section class="panel" aria-labelledby="h-req">
+      <h2 id="h-req">Requests by week</h2>
+      <p class="sub">Quote requests submitted through the priority portal, and how many were approved.</p>
+      <ul class="legend">
+        <li><i style="background:var(--blue-soft)"></i>Requests</li>
+        <li><i style="background:var(--green)"></i>Approved</li>
+        <li><i style="background:var(--muted);background-image:repeating-linear-gradient(135deg, rgba(255,255,255,.55) 0 3px, transparent 3px 6px)"></i>Week in progress</li>
+      </ul>
+      <p class="readout" id="req-readout" aria-live="polite"></p>
+      <div class="chart" id="req-chart"></div>
+      <p class="rowlabel">Percentages show the approval rate for requests submitted that week.</p>
+    </section>
+  </div>
+
+  <div class="grid">
+    <section class="panel" aria-labelledby="h-app">
+      <h2 id="h-app">Request approval rate</h2>
+      <p class="sub">All requests to date, then the same rate for each agency.</p>
+      <div class="approval">
+        <div class="ringwrap">
+          <div class="ring">
+            <svg viewBox="0 0 128 128" aria-hidden="true">
+              <circle class="t" cx="64" cy="64" r="56" />
+              <circle class="f" id="ring-f" cx="64" cy="64" r="56" />
+            </svg>
+            <div id="ring-n">0%</div>
+          </div>
+          <div class="ringtext">
+            <b id="ring-b"></b>
+            <span id="ring-s"></span>
+          </div>
+        </div>
+        <ul class="agencies" id="agencies"></ul>
+      </div>
+    </section>
+  </div>
+
+  <div class="foot">
+  <details>
+    <summary>How these numbers are counted</summary>
+    <ul>
+      <li>Status counts come straight from the status field in pmleads_db at the moment of the last sync. The placeholder "select" status is left out.</li>
+      <li>New leads this week uses the date each contact was added to pmleads_db.</li>
+      <li>Weeks run Monday to Sunday, Sydney time. The striped column is the week in progress.</li>
+      <li>Requests use the date field in pmrequests_db. A request counts as approved when its request status is approved.</li>
+      <li>A quote stays open for 21 days, so the approval rate for the most recent three weeks can still rise.</li>
+      <li>Agency rates use the agency recorded on the contact linked to each request.</li>
+    </ul>
+  </details>
+    <button class="btn lock" id="lock" type="button">Lock</button>
+  </div>
+</div>
+
+<script>
+/* Live feed — GET /api/cp1/pm/dashboard on the drysafecp1 backend, cross-domain.
+   This page is served from mould.drysafe.sydney, the API from drysafe.sydney, so that
+   origin must be listed in PM_PORTAL_ALLOWED_ORIGINS on the server. Same API_BASE
+   convention as pm-portal.html / pm-confirm.html. */
+var API_BASE = "https://drysafe.sydney";
+var API_URL = API_BASE.replace(/\/$/, "") + "/api/cp1/pm/dashboard";
+var STORE_KEY = "drysafe.pm-dashboard.code";
+
+/* Filled from the feed. Stays null until the first successful response, so nothing
+   renders before data has arrived. A failed refresh leaves the last numbers in place. */
+var DATA = null;
+
+function storedCode() {
+  try { return window.localStorage.getItem(STORE_KEY) || ""; } catch (e) { return ""; }
+}
+function rememberCode(code) {
+  try { window.localStorage.setItem(STORE_KEY, code); } catch (e) { /* private mode */ }
+}
+function forgetCode() {
+  try { window.localStorage.removeItem(STORE_KEY); } catch (e) { /* private mode */ }
+}
+
+/* Resolves with the payload, or rejects with an Error carrying .kind:
+   "auth" (401, wrong or revoked code), "rate" (429), "net" (offline, CORS, 5xx, bad JSON).
+   The server is the only thing that ever decides whether a passcode is right. */
+function fetchFeed(code) {
+  return fetch(API_URL, {
+    method: "GET",
+    headers: { "x-dashboard-code": code },
+    cache: "no-store",
+    credentials: "omit"
+  }).then(function (res) {
+    if (res.status === 401) { var a = new Error("unauthorized"); a.kind = "auth"; throw a; }
+    if (res.status === 429) { var r = new Error("rate limited"); r.kind = "rate"; throw r; }
+    if (!res.ok) { var h = new Error("http " + res.status); h.kind = "net"; throw h; }
+    return res.json().catch(function () { var j = new Error("bad json"); j.kind = "net"; throw j; });
+  }, function () {
+    var n = new Error("network"); n.kind = "net"; throw n;   // offline, DNS, blocked by CORS
+  });
+}
+
+function el(tag, cls, text) {
+  var n = document.createElement(tag);
+  if (cls) n.className = cls;
+  if (text !== undefined) n.textContent = text;
+  return n;
+}
+function sum(a) { return a.reduce(function (x, y) { return x + y; }, 0); }
+function pct(a, b) { return b ? Math.round((a / b) * 100) : null; }
+
+/* Pipeline */
+function renderPipeline() {
+  var s = DATA.status;
+  var defs = [
+    { k: "lead", label: "Leads", n: s.lead, d: "+" + DATA.newLeadsThisWeek + " new this week" },
+    { k: "warm", label: "Warm", n: s.warm, d: pct(s.warm, s.lead + s.warm + s.partner) + "% of contacts" },
+    { k: "partner", label: "Partners", n: s.partner, d: pct(s.partner, s.lead + s.warm + s.partner) + "% of contacts" }
+  ];
+  var stages = document.getElementById("stages"), flow = document.getElementById("flow");
+  stages.textContent = ""; flow.textContent = "";
+  defs.forEach(function (d) {
+    var st = el("div", "stage " + d.k);
+    st.appendChild(el("div", "n", String(d.n)));
+    var l = el("div", "l"); l.appendChild(el("i")); l.appendChild(document.createTextNode(d.label));
+    st.appendChild(l);
+    st.appendChild(el("div", "d", d.d));
+    stages.appendChild(st);
+    var seg = el("span", d.k); seg.style.flex = d.n + " 1 0"; flow.appendChild(seg);
+  });
+  var total = s.lead + s.warm + s.partner;
+  document.getElementById("pipe-note").textContent =
+    total + " contacts in the CRM. " + pct(s.warm + s.partner, total) + "% are warm or better.";
+}
+
+/* Column charts */
+var mqNarrow = window.matchMedia("(max-width: 560px)");
+function visibleRange() {
+  var n = DATA.weeks.length, show = mqNarrow.matches ? 8 : 12;
+  return { from: Math.max(0, n - show), to: n };
+}
+
+function weekLabel(i) {
+  var parts = DATA.weeks[i].split(" "), w = el("span", "wk");
+  w.appendChild(el("span", "", parts[0]));
+  w.appendChild(el("span", "", parts[1]));
+  return w;
+}
+
+function renderReq(selected) {
+  var r = visibleRange(), chart = document.getElementById("req-chart");
+  var max = Math.max.apply(null, DATA.requests) || 1;
+  chart.textContent = "";
+  chart.style.gridTemplateColumns = "repeat(" + (r.to - r.from) + ", minmax(0, 1fr))";
+  for (var i = r.from; i < r.to; i++) {
+    (function (i) {
+      var isNow = i === DATA.weeks.length - 1, req = DATA.requests[i], app = DATA.approved[i], rate = pct(app, req);
+      var col = el("button", "col" + (isNow ? " now" : ""));
+      col.type = "button";
+      col.setAttribute("aria-pressed", String(i === selected));
+      col.setAttribute("aria-label", "Week of " + DATA.weeks[i] + ": " + req + " requests, " + app + " approved");
+      var bars = el("span", "bars"), bw = el("span", "bw wide");
+      bw.appendChild(el("span", "v", String(req)));
+      var b = el("span", "bar " + (req ? "tot" : "zero"));
+      b.style.height = (req / max) * 86 + "%";
+      if (req) { var inner = el("span"); inner.style.height = (app / req) * 100 + "%"; b.appendChild(inner); }
+      bw.appendChild(b); bars.appendChild(bw); col.appendChild(bars);
+      col.appendChild(weekLabel(i));
+      col.appendChild(el("span", "rate" + (rate === null ? " none" : ""), rate === null ? "n/a" : rate + "%"));
+      col.addEventListener("click", function () { renderReq(i); });
+      chart.appendChild(col);
+    })(i);
+  }
+  var ro = document.getElementById("req-readout"); ro.textContent = "";
+  var rq = DATA.requests[selected], ap = DATA.approved[selected], rt = pct(ap, rq);
+  ro.appendChild(el("b", "", "Week of " + DATA.weeks[selected] + (selected === DATA.weeks.length - 1 ? " (so far)" : "")));
+  ro.appendChild(el("span", "r", rq + (rq === 1 ? " request" : " requests")));
+  ro.appendChild(el("span", "p", ap + " approved" + (rt === null ? "" : " (" + rt + "%)")));
+}
+
+/* Approval */
+function renderApproval() {
+  var tot = sum(DATA.requests), app = sum(DATA.approved), rate = pct(app, tot) || 0;
+  var c = 2 * Math.PI * 56, ring = document.getElementById("ring-f");
+  ring.style.strokeDasharray = c;
+  ring.style.strokeDashoffset = c;
+  requestAnimationFrame(function () { requestAnimationFrame(function () { ring.style.strokeDashoffset = c * (1 - rate / 100); }); });
+  document.getElementById("ring-n").textContent = rate + "%";
+  document.getElementById("ring-b").textContent = app + " of " + tot + " requests approved";
+  document.getElementById("ring-s").textContent = (tot - app) + " are still open or have expired without approval.";
+
+  var list = document.getElementById("agencies"); list.textContent = "";
+  DATA.agencies.slice().sort(function (a, b) { return b.requests - a.requests; }).forEach(function (a) {
+    var li = el("li"), row = el("div", "arow"), p = pct(a.approved, a.requests);
+    row.appendChild(el("span", "nm", a.name));
+    row.appendChild(el("span", "pc", p + "%"));
+    li.appendChild(row);
+    li.appendChild(el("div", "ameta", a.approved + " of " + a.requests + " requests approved"));
+    var t = el("div", "track"), f = el("span"); f.style.width = p + "%"; t.appendChild(f); li.appendChild(t);
+    list.appendChild(li);
+  });
+}
+
+/* "Synced 2:12 pm" — syncedAt is the time the server read Notion, always shown in
+   Sydney time whatever the phone's own timezone is set to. */
+function renderSynced() {
+  var el0 = document.getElementById("synced"), d = new Date(DATA.syncedAt);
+  if (!DATA.syncedAt || isNaN(d.getTime())) { el0.textContent = "Synced just now"; return; }
+  el0.textContent = "Synced " + d.toLocaleTimeString("en-AU", {
+    hour: "numeric", minute: "2-digit", timeZone: "Australia/Sydney"
+  });
+}
+
+function renderAll() {
+  var last = DATA.weeks.length - 1;
+  renderSynced(); renderPipeline(); renderReq(last); renderApproval();
+}
+if (mqNarrow.addEventListener) mqNarrow.addEventListener("change", function () { if (!app.hidden && DATA) renderAll(); });
+
+/* Passcode gate.
+   The page never decides whether a code is right. It sends the code to the server with the
+   data request; the server returns the numbers or a 401. The passcode appears nowhere in
+   this file. A code that worked is kept on the device so the rep is not asked every visit,
+   and is dropped the moment the server rejects it. */
+var gate = document.getElementById("gate"), app = document.getElementById("app");
+var codeEl = document.getElementById("code"), goEl = document.getElementById("gate-go"), errEl = document.getElementById("gate-err");
+var feedErr = document.getElementById("feed-err");
+
+var GATE_MSG = {
+  auth: "That passcode isn't right. Check it and try again.",
+  rate: "Too many attempts. Wait 15 minutes and try again.",
+  net: "Couldn't reach Notion. Check your connection and try again."
+};
+var FEED_MSG = {
+  rate: "Too many requests. Wait a few minutes and tap Refresh.",
+  net: "Couldn't reach Notion. Check your connection and tap Refresh."
+};
+
+function showGate(message) {
+  app.hidden = true; gate.hidden = false;
+  errEl.textContent = message || "";
+  codeEl.classList.toggle("bad", !!message);
+  codeEl.value = ""; goEl.disabled = true;
+  feedErr.hidden = true; feedErr.textContent = "";
+}
+/* Only ever called with data in hand. */
+function showDashboard() {
+  gate.hidden = true; app.hidden = false; window.scrollTo(0, 0); renderAll();
+}
+function setBusy(on) {
+  var btn = document.getElementById("refresh"), label = btn.querySelector("span");
+  btn.classList.toggle("busy", on); label.textContent = on ? "Refreshing" : "Refresh";
+}
+
+/* The one place a failed load is interpreted. A 401 forgets the stored code and sends the
+   rep back to the passcode screen; anything else keeps whatever numbers are already on
+   screen, because a blank dashboard is worse than a stale one. */
+function handleFailure(err) {
+  var kind = (err && err.kind) || "net";
+  if (kind === "auth") { forgetCode(); showGate(GATE_MSG.auth); return; }
+  if (DATA) { feedErr.textContent = FEED_MSG[kind] || FEED_MSG.net; feedErr.hidden = false; return; }
+  showGate(GATE_MSG[kind] || GATE_MSG.net);
+}
+
+function load(code, onFail) {
+  return fetchFeed(code).then(function (payload) {
+    DATA = payload;
+    rememberCode(code);
+    feedErr.hidden = true; feedErr.textContent = "";
+    showDashboard();
+  }, onFail || handleFailure);
+}
+
+codeEl.addEventListener("input", function () {
+  codeEl.value = codeEl.value.replace(/\D/g, "").slice(0, 6);
+  codeEl.classList.remove("bad"); errEl.textContent = "";
+  goEl.disabled = codeEl.value.length !== 6;
+});
+
+document.getElementById("gate-form").addEventListener("submit", function (e) {
+  e.preventDefault();
+  var code = codeEl.value;
+  if (code.length !== 6) return;
+  goEl.disabled = true; errEl.textContent = "";
+  load(code, function (err) {
+    var kind = (err && err.kind) || "net";
+    if (kind === "auth") forgetCode();
+    codeEl.classList.add("bad");
+    errEl.textContent = GATE_MSG[kind] || GATE_MSG.net;
+    codeEl.value = ""; goEl.disabled = true; codeEl.focus();
+  });
+});
+
+/* Lock forgets the code deliberately, so the next visit asks for it again. */
+document.getElementById("lock").addEventListener("click", function () {
+  forgetCode();
+  DATA = null;
+  showGate("");
+  codeEl.focus();
+});
+
+document.getElementById("refresh").addEventListener("click", function () {
+  var code = storedCode();
+  if (!code) { forgetCode(); showGate(""); return; }
+  setBusy(true);
+  load(code).then(function () { setBusy(false); }, function () { setBusy(false); });
+});
+
+/* First load: a remembered code is tried straight away. The gate is hidden for that
+   moment so it does not flash before the dashboard, and comes back if the code is
+   rejected or the feed cannot be reached. */
+(function start() {
+  var code = storedCode();
+  if (!code) return;
+  gate.hidden = true;
+  load(code);
+})();
+</script>
+</body>
+</html>
