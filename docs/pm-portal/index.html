@@ -232,10 +232,16 @@
       <h2>Some final details so we can submit your report to you</h2>
       <p class="h2-sub">The report is emailed to you and can be forwarded to the owner.</p>
 
+      <div class="field" id="f-company">
+        <label class="lbl" for="pm-company">Property Management Company / Agency</label>
+        <input type="text" id="pm-company" name="pm_company" autocomplete="organization" placeholder="Agency or company name">
+        <div class="err">Enter your property management company.</div>
+      </div>
+
       <div class="field" id="f-name">
-        <label class="lbl" for="pm-name">Your name</label>
+        <label class="lbl" for="pm-name">Property manager name</label>
         <input type="text" id="pm-name" name="pm_name" autocomplete="name" placeholder="Property manager's full name">
-        <div class="err">Enter your name.</div>
+        <div class="err">Enter the property manager's name.</div>
       </div>
 
       <div class="field" id="f-email">
@@ -412,31 +418,34 @@ $('#step1').addEventListener('submit',(e)=>{
   $('#f-address').classList.toggle('invalid', !ok);
   if(!ok){ addr.focus(); return; }
   showStep(2);
-  setTimeout(()=>$('#pm-name').focus(),150);
+  setTimeout(()=>$('#pm-company').focus(),150);
 });
 $('#back').addEventListener('click',()=>showStep(1));
 
 const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 $('#step2').addEventListener('submit',(e)=>{
   e.preventDefault();
+  state.company = $('#pm-company').value.trim();
   state.name = $('#pm-name').value.trim();
   state.email = $('#pm-email').value.trim();
   state.phone = $('#pm-phone').value.trim();
-  const v = { name: state.name.length>1, email: emailRe.test(state.email), phone: state.phone.replace(/\D/g,'').length>=8 };
+  const v = { company: state.company.length>1, name: state.name.length>1, email: emailRe.test(state.email), phone: state.phone.replace(/\D/g,'').length>=8 };
+  $('#f-company').classList.toggle('invalid',!v.company);
   $('#f-name').classList.toggle('invalid',!v.name);
   $('#f-email').classList.toggle('invalid',!v.email);
   $('#f-phone').classList.toggle('invalid',!v.phone);
+  if(!v.company){ $('#pm-company').focus(); return; }
   if(!v.name){ $('#pm-name').focus(); return; }
   if(!v.email){ $('#pm-email').focus(); return; }
   if(!v.phone){ $('#pm-phone').focus(); return; }
   submit();
 });
-['#pm-name','#pm-email','#pm-phone'].forEach(id=>$(id).addEventListener('input',()=>$(id).closest('.field').classList.remove('invalid')));
+['#pm-company','#pm-name','#pm-email','#pm-phone'].forEach(id=>$(id).addEventListener('input',()=>$(id).closest('.field').classList.remove('invalid')));
 
 /* ---------- Submit → drysafecp1 ---------- */
 function buildPayload(){
   return {
-    pm_name: state.name, pm_email: state.email, pm_phone: state.phone,
+    pm_company: state.company, pm_name: state.name, pm_email: state.email, pm_phone: state.phone,
     address: state.address, signs: state.signs.slice(), rooms: state.rooms,
     agency: AGENCY, website: $('#website').value
   };
