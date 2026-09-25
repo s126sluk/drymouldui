@@ -326,7 +326,9 @@ const MOCK_ADDRESSES = [
   '58 Norton Street, Leichhardt NSW 2040'
 ];
 
-const state = { address:'', signs:[], rooms:1, name:'', email:'', phone:'' };
+/* addressConfirmed: the address came from a suggestion (Google Places or the
+   local list), not just typed characters. Typing again clears it. */
+const state = { address:'', addressConfirmed:false, signs:[], rooms:1, name:'', email:'', phone:'' };
 const $ = (s) => document.querySelector(s);
 const fmtDate = new Intl.DateTimeFormat('en-AU',{day:'numeric',month:'long',year:'numeric'});
 
@@ -348,15 +350,23 @@ function openList(matches){
     el.addEventListener('mousedown',(e)=>{ e.preventDefault(); pick(+el.dataset.i); });
   });
 }
-function pick(i){ addr.value = items[i]; state.address = items[i]; closeList(); $('#f-address').classList.remove('invalid'); }
+function pick(i){ addr.value = items[i]; state.address = items[i]; state.addressConfirmed = true; closeList(); $('#f-address').classList.remove('invalid'); }
 function highlight(){ list.querySelectorAll('.ac-item').forEach((el,i)=>el.classList.toggle('hl',i===hl)); }
 addr.addEventListener('input',()=>{
   state.address = addr.value.trim();
+  state.addressConfirmed = false; // typing invalidates a previous selection
   if(window.__placesActive) return; // Google handles suggestions
   const q = addr.value.trim().toLowerCase();
   if(q.length<2){ closeList(); return; }
   openList(MOCK_ADDRESSES.filter(a=>a.toLowerCase().includes(q)).slice(0,6));
 });
+/* Enter in the address field must never reach the form. The person is
+   confirming an address suggestion, not clicking Next, and implicit submission
+   would skip the signs and rooms steps. preventDefault cancels only that
+   submission — it is not stopPropagation, so the autocomplete keydown handlers
+   (Google's, and the local list's below) still run and still select a
+   highlighted suggestion. With nothing highlighted, Enter now does nothing. */
+addr.addEventListener('keydown',(e)=>{ if(e.key==='Enter') e.preventDefault(); });
 addr.addEventListener('keydown',(e)=>{
   if(!list.classList.contains('open')) return;
   if(e.key==='ArrowDown'){ e.preventDefault(); hl=Math.min(hl+1,items.length-1); highlight(); }
@@ -375,7 +385,12 @@ if(GOOGLE_PLACES_API_KEY){
       });
       ac.addListener('place_changed',()=>{
         const p = ac.getPlace();
-        if(p && p.formatted_address){ addr.value = p.formatted_address; state.address = p.formatted_address; }
+        if(p && p.formatted_address){
+          addr.value = p.formatted_address;
+          state.address = p.formatted_address;
+          state.addressConfirmed = true;
+          $('#f-address').classList.remove('invalid');
+        }
       });
       window.__placesActive = true;
     }catch(err){ console.warn('Places unavailable, using local suggestions', err); }
@@ -414,7 +429,15 @@ function showStep(n){
 }
 $('#step1').addEventListener('submit',(e)=>{
   e.preventDefault();
-  const ok = !!state.address;
+  const typed = !!state.address;
+  /* Insist on a picked suggestion only while Google Places is actually running.
+     If it failed to load, the local list only holds a handful of demo addresses
+     and could never match a real one, so requiring a pick would lock everyone
+     out; typed text still passes in that case, as it did before. */
+  const ok = typed && (state.addressConfirmed || !window.__placesActive);
+  $('#f-address .err').textContent = typed
+    ? 'Select the address from the suggestions.'
+    : 'Enter the property address.';
   $('#f-address').classList.toggle('invalid', !ok);
   if(!ok){ addr.focus(); return; }
   showStep(2);
@@ -493,7 +516,7 @@ async function submit(){
   }
 }
 $('#again').addEventListener('click',()=>{
-  Object.assign(state,{address:'',signs:[],rooms:1,name:'',email:'',phone:''});
+  Object.assign(state,{address:'',addressConfirmed:false,signs:[],rooms:1,name:'',email:'',phone:''});
   $('#step1').reset(); $('#step2').reset(); setRooms(1);
   $('#done .h2-sub').innerHTML = 'Your Mould Remediation Quote is on its way to <b id="done-email"></b>.';
   $('#submit-err').hidden = true;
