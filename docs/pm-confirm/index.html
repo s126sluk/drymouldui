@@ -84,6 +84,9 @@
   .ib svg{width:17px;height:17px}
   li.add .ib{background:var(--lightgreen);color:var(--green)}
   .pkg .note{margin:12px 0 0;font-size:12px;color:var(--grey)}
+  /* Offer band (Mould Assessment Only). Same green-border-on-lightgreen treatment as a
+     ticked .accept box; text stays on --dark so it holds contrast in both themes. */
+  .pkg .offer{margin:14px 0 0;padding:9px 12px;border:1px solid var(--green);border-left-width:4px;border-radius:8px;background:var(--lightgreen);color:var(--dark);font-size:13.5px;font-weight:600}
 
   .actions{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:8px}
   .btn{display:inline-flex;align-items:center;justify-content:center;font:inherit;font-weight:600;font-size:16px;padding:13px 22px;border-radius:8px;border:0;cursor:pointer;text-decoration:none;transition:background .15s}
@@ -441,6 +444,7 @@ const OPTION_META = {
   assessment:{
     name:'Mould Assessment Only', flat:true,
     items:[INC.inspect, INC.readings, INC.roomPhotos, INC.findings],
+    offer:'50% credited back to you when you proceed with the recommended works',
     note:'No treatment is carried out on this visit.'
   },
   basic:{
@@ -476,6 +480,7 @@ function packageCard(meta, total, rooms){
     + '<p class="per">' + esc(per) + '</p></div>'
     + '<div class="price"><span class="amt">' + esc(money(total)) + '</span> <span class="ex">ex GST</span></div>'
     + '</div>'
+    + (meta.offer ? '<p class="offer">' + esc(meta.offer) + '</p>' : '')
     + '<ul class="inc">' + items + '</ul>'
     + (meta.note ? '<p class="note">' + esc(meta.note) + '</p>' : '')
     + '</article>';
