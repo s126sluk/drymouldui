@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+<!-- Short branded link for the Instagram bio (@drysafe_mould). Forwards to the
+     mould page with the campaign tags attached, so PostHog attributes the visit
+     to Instagram. Not a real page: keep it out of search. -->
+<meta name="robots" content="noindex, nofollow" />
+
+<!-- Without this the destination records a self-referral from this page, which
+     reads as internal navigation in PostHog. Suppressing the referrer leaves
+     attribution to the utm_ parameters, which is the point of the link. -->
+<meta name="referrer" content="no-referrer" />
+
+<!-- Fallback for anything that does not run the script below. -->
+<meta http-equiv="refresh" content="0; url=https://mould.drysafe.sydney/?utm_source=instagram&amp;utm_medium=social&amp;utm_campaign=ig_bio" />
+
+<title>Redirecting to drySafe</title>
+<script>
+  /* replace() rather than assign(), so Back returns to Instagram instead of
+     bouncing through this page again. The destination is fixed on purpose:
+     anything appended to /ig is dropped rather than merged, so the campaign
+     tags cannot be rewritten by a crafted link. */
+  location.replace("https://mould.drysafe.sydney/?utm_source=instagram&utm_medium=social&utm_campaign=ig_bio");
+</script>
+</head>
+<body>
+  <p>Redirecting to <a href="https://mould.drysafe.sydney/?utm_source=instagram&amp;utm_medium=social&amp;utm_campaign=ig_bio">mould.drysafe.sydney</a>&hellip;</p>
+</body>
+</html>
