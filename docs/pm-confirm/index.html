@@ -158,6 +158,32 @@
   .status-page .success{padding-top:44px}
   .err-box{display:block;margin:12px 0 0;padding:10px 12px;border:1px solid #D8433B;border-radius:8px;color:#D8433B;font-size:14px;line-height:1.45}
   .err-box[hidden]{display:none}
+
+  /* CP6 proceed mode: ordering the works from the PM assessment report (handoff 11 Nov
+     2026). Only used when the page is opened with mode=proceed. */
+  .note-blue{background:var(--lightblue);border-radius:10px;padding:12px 14px;font-size:14.5px;line-height:1.5;margin:0 0 18px}
+  .pkg-radios{grid-template-columns:1fr 1fr}
+  @media (max-width:600px){.pkg-radios{grid-template-columns:1fr}}
+  .pkg-radios .radio div{flex:1}
+  .pkg-radios .radio .chip{display:inline-block;margin-top:6px;background:var(--lightgreen);color:var(--green);font-size:11px;font-weight:600;padding:2px 8px;border-radius:999px}
+  .stepper{display:flex;align-items:center;gap:12px;margin:0 0 6px}
+  .stepper button{width:60px;height:60px;border-radius:10px;border:1.5px solid var(--border);background:var(--input);color:var(--dark);font:inherit;font-size:24px;font-weight:600;cursor:pointer;line-height:1}
+  .stepper button:disabled{opacity:.4;cursor:not-allowed}
+  .stepper button:focus-visible{outline:3px solid rgba(36,136,234,.4);outline-offset:2px}
+  .stepper .val{min-width:96px;text-align:center;font-size:17px;font-weight:600}
+  .hint-line{font-size:13.5px;color:var(--grey);margin:0 0 6px}
+  .amber{font-size:13.5px;color:#8a5a00;background:#fff4dc;border-radius:8px;padding:8px 10px;margin:6px 0 0}
+  @media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .amber{color:#f3c76b;background:#3a2c0c}}
+  :root[data-theme="dark"] .amber{color:#f3c76b;background:#3a2c0c}
+  .breakdown{background:var(--light);border-radius:10px;padding:14px 16px;margin:0 0 18px;font-size:14.5px}
+  .breakdown .row{display:flex;justify-content:space-between;gap:12px;padding:3px 0}
+  .breakdown .row.credit{color:var(--green)}
+  .breakdown .row.total{border-top:1px solid var(--border2);margin-top:6px;padding-top:8px;font-weight:700}
+  .breakdown .gst{margin:8px 0 0;font-size:12.5px;color:var(--grey)}
+  textarea{width:100%;font:inherit;font-size:16px;color:var(--dark);background:var(--input);border:1.5px solid var(--border);border-radius:8px;padding:12px 14px;outline:none;resize:vertical;min-height:52px}
+  textarea:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(36,136,234,.18)}
+  .help{font-size:13px;color:var(--grey);margin:6px 0 0}
+  .track-btn{margin:6px 0 18px}
 </style>
 </head>
 <body>
@@ -210,29 +236,54 @@
 
   <!-- 1. Request details -->
   <section class="sec" id="s1">
-    <div class="sec-head"><span class="n">1</span><h2>Your request</h2><button class="edit" type="button" data-reopen="s1">Change</button></div>
+    <div class="sec-head"><span class="n">1</span><h2 id="s1-title">Your request</h2><button class="edit" type="button" data-reopen="s1">Change</button></div>
     <div class="summary-line" id="s1-summary"></div>
     <div class="sec-body">
+      <!-- Proceed mode only (mode=proceed): choose the package and rooms. -->
+      <div id="proceed-choose" class="hidden">
+        <p class="note-blue" id="p-note"></p>
+        <div class="group">
+          <h3>Package</h3>
+          <div class="radios pkg-radios" role="radiogroup" aria-label="Package">
+            <label class="radio"><input type="radio" name="pkgopt" value="care"><span class="dot"></span><div><b>DrySafe Care</b><span id="p-price-care"></span><br><span class="chip">Recommended in your report</span></div></label>
+            <label class="radio"><input type="radio" name="pkgopt" value="basic"><span class="dot"></span><div><b>Basic Savings</b><span id="p-price-basic"></span></div></label>
+          </div>
+        </div>
+        <div class="group">
+          <h3 id="p-rooms-label">Rooms</h3>
+          <div class="stepper">
+            <button type="button" id="p-minus" aria-label="One fewer room" aria-controls="p-rooms">−</button>
+            <span class="val" id="p-rooms" aria-live="polite" aria-labelledby="p-rooms-label"></span>
+            <button type="button" id="p-plus" aria-label="One more room" aria-controls="p-rooms">+</button>
+          </div>
+          <p class="hint-line" id="p-hint"></p>
+          <p class="amber hidden" id="p-changed"></p>
+        </div>
+      </div>
       <div id="pkg-card"></div>
+      <div id="p-breakdown" class="breakdown hidden" aria-live="polite"></div>
       <div class="group">
         <h3>Property</h3>
         <dl class="kv">
           <dt>Address</dt><dd id="v-address"></dd>
           <dt>Issue type</dt><dd>Mould</dd>
-          <dt>Signs reported</dt><dd id="v-signs"></dd>
-          <dt>Rooms affected</dt><dd id="v-rooms"></dd>
+          <dt class="normal-only">Signs reported</dt><dd class="normal-only" id="v-signs"></dd>
+          <dt class="normal-only">Rooms affected</dt><dd class="normal-only" id="v-rooms"></dd>
+          <dt class="proceed-only hidden">Assessment</dt><dd class="proceed-only hidden" id="v-assessment"></dd>
         </dl>
       </div>
       <div class="group">
         <h3>Property manager</h3>
         <dl class="kv">
+          <dt class="proceed-only hidden">Agency</dt><dd class="proceed-only hidden" id="v-agency"></dd>
           <dt>Name</dt><dd id="v-name"></dd>
           <dt>Email</dt><dd id="v-email"></dd>
           <dt>Phone</dt><dd id="v-phone"></dd>
         </dl>
       </div>
       <div class="actions">
-        <span class="alt">Something not right? <a href="/pm-portal" id="new-request">Start a new request</a></span>
+        <span class="alt normal-only">Something not right? <a href="/pm-portal" id="new-request">Start a new request</a></span>
+        <span class="alt proceed-only hidden">Something not right? Call <a href="tel:0420141128">0420 141 128</a></span>
         <button class="btn btn-primary" type="button" id="confirm-1">Confirm everything is correct</button>
       </div>
     </div>
@@ -244,6 +295,7 @@
     <div class="summary-line" id="s2-summary"></div>
     <div class="sec-body">
       <p class="alt" style="margin:0 0 14px">Our office uses these details to book the attendance time and to arrange entry on the day.</p>
+      <p class="note-blue proceed-only hidden">Copied from your assessment visit. Change anything that's different this time.</p>
       <div class="radios">
         <label class="radio"><input type="radio" name="contact" value="pm" checked><span class="dot"></span><div><b>Same as property manager</b><span id="pm-radio-sub"></span></div></label>
         <label class="radio"><input type="radio" name="contact" value="tenant"><span class="dot"></span><div><b>Contact the tenant</b><span>We'll arrange access directly with the tenant.</span></div></label>
@@ -252,6 +304,12 @@
         <div class="field" id="f-tname"><label class="lbl" for="tname">Tenant name</label><input type="text" id="tname" autocomplete="off"><div class="err">Enter the tenant's name.</div></div>
         <div class="field" id="f-tphone"><label class="lbl" for="tphone">Tenant phone</label><input type="tel" id="tphone" inputmode="tel" placeholder="04xx xxx xxx"><div class="err">Enter a phone number for the tenant.</div></div>
         <div class="field" id="f-temail"><label class="lbl" for="temail">Tenant email</label><input type="email" id="temail" inputmode="email"><div class="err">Enter a valid email address for the tenant.</div></div>
+      </div>
+      <div class="field proceed-only hidden" id="f-notes">
+        <label class="lbl" for="access-notes">Access notes (optional)</label>
+        <input type="text" id="access-notes" maxlength="500" autocomplete="off" aria-describedby="access-notes-help">
+        <p class="help" id="access-notes-help">Anything we need to know to get in, such as keys or a lockbox. Shown to our office and the technician.</p>
+        <div class="err">Keep access notes to 500 characters or fewer.</div>
       </div>
       <div class="actions"><span></span><button class="btn btn-primary" type="button" id="confirm-2">Continue to authorisation</button></div>
     </div>
@@ -402,6 +460,19 @@
     <p class="difference">The DrySafe Difference</p>
     <p class="alt">To book another request, <a href="/pm-portal" id="another-request">click on this link</a>.</p>
     <p class="ref-line">Order <span id="ref-success"></span> · <span id="opt-success"></span> · <span id="addr-success"></span></p>
+    <p class="ref-line hidden" id="linked-success" style="margin-top:4px"></p>
+  </div></div>
+</main>
+
+<!-- Proceed mode: the works were already ordered from this report -->
+<main class="wrap hidden" id="ordered-page">
+  <div class="sec"><div class="success">
+    <div class="tick"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#228B22" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5 5L20 7"/></svg></div>
+    <h1>Already ordered</h1>
+    <p class="lede" id="ordered-body"></p>
+    <p class="ref-line" id="ordered-number" style="margin:0 0 18px"></p>
+    <p class="track-btn hidden" id="ordered-track-wrap"><a class="btn btn-primary" id="ordered-track" href="#">Track this job</a></p>
+    <p class="alt">Need something changed? Call <a href="tel:0420141128">0420 141 128</a></p>
   </div></div>
 </main>
 
@@ -528,6 +599,7 @@ async function load(){
   if(!/^DS-PM-\d{6}-\d{4}$/.test(REF) || !/^[a-f0-9]{32}$/.test(TOKEN)){
     showStatus("This link isn't valid", 'Open the confirmation from one of the Approve buttons in your Mould Remediation Quote email, or start a new request.', true); return;
   }
+  if(PROCEED){ return loadProceed(); }
   try{
     const res = await fetch(API + '/request/' + encodeURIComponent(REF) + '?t=' + encodeURIComponent(TOKEN), { headers:{ Accept:'application/json' } });
     if(res.status === 404){ showStatus("This link isn't valid", 'Open the confirmation from one of the Approve buttons in your Mould Remediation Quote email, or start a new request.', true); return; }
@@ -552,6 +624,7 @@ function reopen(id){ const s=$('#'+id); s.classList.remove('done'); ['s2','s3'].
 document.querySelectorAll('[data-reopen]').forEach(b=>b.addEventListener('click',()=>reopen(b.dataset.reopen)));
 
 $('#confirm-1').addEventListener('click',()=>{
+  if(PROCEED){ setDone('s1', P.summary()); unlock('s2'); return; }
   setDone('s1', OPTION_META[opt].name + ' · ' + money(total) + ' ex GST · ' + req.address);
   unlock('s2');
 });
@@ -562,6 +635,7 @@ document.querySelectorAll('input[name=contact]').forEach(r=>r.addEventListener('
 }));
 const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 $('#confirm-2').addEventListener('click',()=>{
+  if(PROCEED){ return P.confirmContact(); }
   if(state.contact==='tenant'){
     const t = { name:$('#tname').value.trim(), phone:$('#tphone').value.trim(), email:$('#temail').value.trim() };
     const v = { name:t.name.length>1, phone:t.phone.replace(/\D/g,'').length>=8, email:emailRe.test(t.email) };
@@ -589,6 +663,7 @@ $('#accept').addEventListener('change',()=>{ $('#submit').disabled = !$('#accept
 function showError(msg){ const b=$('#submit-err'); b.textContent = msg; b.hidden = false; }
 
 $('#submit').addEventListener('click', async ()=>{
+  if(PROCEED){ return P.submit(); }
   const btn = $('#submit'); btn.disabled = true; btn.textContent = 'Submitting…'; $('#submit-err').hidden = true;
   const order = {
     ref: req.ref, t: TOKEN, option: opt,
@@ -608,6 +683,204 @@ $('#submit').addEventListener('click', async ()=>{
     btn.disabled = false; btn.textContent = 'Submit';
   }
 });
+
+/* ---------------------------------------------------------------
+   CP6 proceed mode (handoff 11 Nov 2026): ordering the works from the PM
+   assessment report. The report's buttons open
+     /pm-confirm?ref=…&t=…&mode=proceed&option=care|basic&rooms=N
+   Load:   GET  {API}/request/{ref}?t=…&mode=proceed  → the request + a proceed block
+   Submit: POST {API}/order  with mode:'proceed', option, rooms, site_contact, access_notes
+   option and rooms in the link are only the starting selection. Every figure shown is
+   read from the API's price table (proceed.prices[option][rooms]); the page adds
+   nothing up and sends no price. Without mode=proceed none of this runs.
+---------------------------------------------------------------- */
+const PROCEED = get('mode') === 'proceed';
+const PHONE = '0420 141 128';
+const ACCESS_NOTES_MAX = 500;
+
+function money2(n){ return '$' + Number(n).toLocaleString('en-AU',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+function roomsText(n){ n = Number(n); return n + (n === 1 ? ' room' : ' rooms'); }
+// "16 November" / "16 November 2026", in Sydney time. A bare YYYY-MM-DD is a calendar date.
+function sydDate(iso, withYear){
+  if(!iso) return '';
+  const d = new Date(/^\d{4}-\d{2}-\d{2}$/.test(iso) ? iso + 'T12:00:00Z' : iso);
+  if(isNaN(d)) return '';
+  return d.toLocaleDateString('en-AU', Object.assign({ timeZone:'Australia/Sydney', day:'numeric', month:'long' }, withYear ? { year:'numeric' } : {}));
+}
+function listRooms(names){
+  const a = (names || []).filter(Boolean);
+  return a.length <= 1 ? (a[0] || '') : a.slice(0, -1).join(', ') + ' and ' + a[a.length - 1];
+}
+function street(address){ return String(address || '').split(',')[0]; }
+
+function showOrdered(o, address){
+  if(!o){ showStatus('Already ordered', 'The works for this property have already been ordered. Call ' + PHONE + ' if you need something changed.', false); return; }
+  const what = (o.option_name || OPTION_META[o.option]?.name || 'The works') + (o.rooms ? ' for ' + roomsText(o.rooms) : '');
+  $('#ordered-body').textContent = what + ' at ' + street(address) + ' was ordered' + (o.approved_at ? ' on ' + sydDate(o.approved_at, true) : '') + '.';
+  $('#ordered-number').textContent = o.order_number ? 'Order ' + o.order_number : '';
+  $('#ordered-track-wrap').classList.toggle('hidden', !o.track_url);
+  if(o.track_url) $('#ordered-track').href = o.track_url;
+  $('#status-page').classList.add('hidden'); $('#confirm-page').classList.add('hidden'); $('#success-page').classList.add('hidden');
+  $('#ordered-page').classList.remove('hidden');
+  window.scrollTo({top:0});
+}
+function showNotAvailable(){
+  showStatus("Ordering from the report isn't available right now", "Call " + PHONE + " and we'll arrange it.", false);
+}
+
+const P = {
+  r: null, p: null, option: 'care', rooms: 1, assessedRooms: 1,
+
+  entry(){ return this.p.prices[this.option][String(this.rooms)]; },
+
+  summary(){
+    return OPTION_META[this.option].name + ' · ' + roomsText(this.rooms) + ' · ' + money2(this.entry().net) + ' ex GST';
+  },
+
+  update(){
+    for(const o of ['care','basic']){
+      $('#p-price-' + o).textContent = money2(this.p.prices[o][String(this.rooms)].net) + ' ex GST for ' + roomsText(this.rooms);
+    }
+    const e = this.entry();
+    $('#p-rooms').textContent = roomsText(this.rooms);
+    $('#p-minus').disabled = this.rooms <= 1;
+    $('#p-plus').disabled = this.rooms >= 9;
+    const changed = this.rooms !== this.assessedRooms;
+    $('#p-changed').classList.toggle('hidden', !changed);
+    $('#p-changed').textContent = 'Changed from the ' + roomsText(this.assessedRooms) + ' we assessed. Our office will confirm which rooms when booking.';
+    $('#pkg-card').innerHTML = packageCard(OPTION_META[this.option], e.gross, this.rooms);
+    const rows = e.lines.map(([label, amt]) => '<div class="row"><span>' + esc(label) + '</span><span>' + esc(money2(amt)) + '</span></div>');
+    if(Number(e.credit) > 0){
+      rows.push('<div class="row credit"><span>Assessment credit (50% of your $99 assessment)</span><span>−' + esc(money2(e.credit)) + '</span></div>');
+    }
+    rows.push('<div class="row total"><span>Total</span><span>' + esc(money2(e.net)) + ' ex GST</span></div>');
+    $('#p-breakdown').innerHTML = rows.join('') + '<p class="gst">GST is added on the invoice, which goes to you once the works are authorised.</p>';
+  },
+
+  render(r){
+    this.r = r; this.p = r.proceed; req = r;
+    const p = this.p;
+    this.assessedRooms = Math.min(9, Math.max(1, Number(p.default_rooms) || 1));
+    const linkRooms = get('rooms');
+    this.rooms = /^\d+$/.test(linkRooms || '') && +linkRooms >= 1 && +linkRooms <= 9 ? +linkRooms : this.assessedRooms;
+    this.option = ['care','basic'].includes(get('option')) ? get('option') : 'care';
+
+    document.querySelectorAll('.normal-only').forEach(el => el.classList.add('hidden'));
+    document.querySelectorAll('.proceed-only').forEach(el => el.classList.remove('hidden'));
+    $('#proceed-choose').classList.remove('hidden');
+    $('#p-breakdown').classList.remove('hidden');
+
+    // Intro
+    $('.intro .eyebrow').textContent = 'Remediation order · From assessment ' + r.ref;
+    $('#addr-top').textContent = r.address;
+    $('.intro .lede').textContent = "Three short steps: choose the works, check who we contact for access, then authorise. We've filled in what we know from your assessment.";
+    $('#s1-title').textContent = 'Choose the works';
+
+    // 1 · Choose the works
+    const on = sydDate(p.assessed_on, false);
+    const mould = listRooms(p.mould_rooms);
+    const n = this.assessedRooms;
+    $('#p-note').textContent = 'Your assessment' + (on ? ' on ' + on : '') + ' covered ' + roomsText(n)
+      + (mould ? ', with visible mould in ' + mould : '') + '. '
+      + "We've started you on " + OPTION_META[this.option].name + ' for ' + (n === 1 ? 'that room' : 'those ' + n + ' rooms') + '.';
+    $('#p-hint').textContent = 'We assessed ' + roomsText(n) + '. Change this if you want more or fewer rooms treated, up to 9.';
+    document.querySelector('input[name=pkgopt][value="' + this.option + '"]').checked = true;
+
+    $('#v-address').textContent = r.address;
+    $('#v-assessment').textContent = r.ref + (on ? ' · attended ' + on : '');
+    const agency = p.agency_name || (r.pm && r.pm.company) || '';
+    $('#v-agency').textContent = agency;
+    // The agency's name, when the API sends one; otherwise leave the row out.
+    if(!agency){ $('#v-agency').classList.add('hidden'); $('#v-agency').previousElementSibling.classList.add('hidden'); }
+    $('#v-name').textContent = r.pm.name; $('#v-email').textContent = r.pm.email; $('#v-phone').textContent = r.pm.phone;
+    $('#pm-radio-sub').textContent = r.pm.name + ' · ' + r.pm.phone;
+
+    // 2 · Prefill the access contact from the assessment visit
+    const sc = p.site_contact || {};
+    if(sc.type === 'tenant'){
+      document.querySelector('input[name=contact][value=tenant]').checked = true;
+      state.contact = 'tenant'; $('#tenant').classList.add('open');
+      $('#tname').value = sc.name || ''; $('#tphone').value = sc.phone || ''; $('#temail').value = sc.email || '';
+    }
+    if(p.access_notes) $('#access-notes').value = p.access_notes;
+
+    this.update();
+    $('#status-page').classList.add('hidden'); $('#confirm-page').classList.remove('hidden');
+  },
+
+  confirmContact(){
+    const notes = $('#access-notes').value.trim();
+    const notesOk = notes.length <= ACCESS_NOTES_MAX;
+    $('#f-notes').classList.toggle('invalid', !notesOk);
+    if(state.contact === 'tenant'){
+      const t = { name:$('#tname').value.trim(), phone:$('#tphone').value.trim(), email:$('#temail').value.trim() };
+      const v = { name:t.name.length>1, phone:t.phone.replace(/\D/g,'').length>=8, email:emailRe.test(t.email) };
+      $('#f-tname').classList.toggle('invalid',!v.name); $('#f-tphone').classList.toggle('invalid',!v.phone); $('#f-temail').classList.toggle('invalid',!v.email);
+      if(!v.name){ $('#tname').focus(); return; } if(!v.phone){ $('#tphone').focus(); return; } if(!v.email){ $('#temail').focus(); return; }
+      if(!notesOk){ $('#access-notes').focus(); return; }
+      state.tenant = t;
+      setDone('s2', 'Tenant: ' + t.name + ' · ' + t.phone);
+    } else {
+      if(!notesOk){ $('#access-notes').focus(); return; }
+      setDone('s2', 'Property manager: ' + this.r.pm.name + ' · ' + this.r.pm.phone);
+    }
+    unlock('s3');
+  },
+
+  async submit(){
+    const btn = $('#submit'); btn.disabled = true; btn.textContent = 'Submitting…'; $('#submit-err').hidden = true;
+    const body = {
+      ref: this.r.ref, t: TOKEN, mode: 'proceed', option: this.option, rooms: this.rooms,
+      site_contact: state.contact==='tenant' ? { type:'tenant', ...state.tenant } : { type:'pm' },
+      access_notes: $('#access-notes').value.trim(),
+      terms_accepted: $('#accept').checked === true
+    };
+    try{
+      const res = await fetch(API + '/order', { method:'POST', headers:{'Content-Type':'application/json', Accept:'application/json'}, body: JSON.stringify(body) });
+      const data = await res.json().catch(()=>({}));
+      if(res.ok && data.ok){
+        $('#ref-success').textContent = data.order_number || (this.r.ref + '-R');
+        $('#opt-success').textContent = (data.option_name || OPTION_META[this.option].name) + ' · ' + roomsText(data.rooms || this.rooms);
+        $('#addr-success').textContent = this.r.address;
+        $('#linked-success').textContent = 'Linked to assessment ' + this.r.ref;
+        $('#linked-success').classList.remove('hidden');
+        $('#another-request').href = portalHref(data.agency || this.r.agency);
+        $('#status-page').classList.add('hidden'); $('#confirm-page').classList.add('hidden'); $('#success-page').classList.remove('hidden');
+        window.scrollTo({top:0});
+        return;
+      }
+      if(res.status === 409 && data.error === 'already_ordered'){ showOrdered(data.ordered, this.r.address); return; }
+      if(res.status === 503){ showNotAvailable(); return; }
+      if(data.error === 'validation_failed') throw new Error('Please check the contact details entered and try again.');
+      throw new Error('Something went wrong on our side and your authorisation was not submitted. Please try again, or call ' + PHONE + '.');
+    }catch(err){
+      showError(err.message || 'Something went wrong. Please try again.');
+      btn.disabled = false; btn.textContent = 'Submit';
+    }
+  }
+};
+
+async function loadProceed(){
+  try{
+    const res = await fetch(API + '/request/' + encodeURIComponent(REF) + '?t=' + encodeURIComponent(TOKEN) + '&mode=proceed', { headers:{ Accept:'application/json' } });
+    if(res.status === 404){ showStatus("This link isn't valid", 'Open the order buttons from your Mould Assessment report again, or start a new request.', true); return; }
+    if(!res.ok) throw new Error('load_failed');
+    const r = await res.json();
+    const p = r.proceed;
+    if(!p || !p.enabled){ showNotAvailable(); return; }
+    if(p.ordered){ showOrdered(p.ordered, r.address); return; }
+    P.render(r);
+  }catch(e){
+    showStatus("We couldn't load your order", 'Please refresh the page in a moment, or call ' + PHONE + '.', false);
+  }
+}
+
+if(PROCEED){
+  document.querySelectorAll('input[name=pkgopt]').forEach(el => el.addEventListener('change', () => { P.option = el.value; P.update(); }));
+  $('#p-minus').addEventListener('click', () => { if(P.rooms > 1){ P.rooms--; P.update(); } });
+  $('#p-plus').addEventListener('click', () => { if(P.rooms < 9){ P.rooms++; P.update(); } });
+  $('#access-notes').addEventListener('input', () => $('#f-notes').classList.remove('invalid'));
+}
 
 load();
 </script>
