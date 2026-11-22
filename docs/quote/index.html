@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="en-AU">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<meta name="referrer" content="no-referrer">
+<title>Your mould remediation quote | DrySafe</title>
+<link rel="icon" href="/img/favicon.ico">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@500;600&display=swap" rel="stylesheet">
+<!--
+  D2C quote page (20 Nov 2026): paying for the works from a consumer's mould assessment report.
+  Opened from the link we send after the assessment: /quote/?q=<32-hex token>.
+
+    Load:   GET  {API}/api/cp1/quote/{token}           → options (ex GST, GST, inc GST), customer, state
+    Submit: POST {API}/api/cp1/quote/{token}/checkout  { options:[keys], phone, email,
+                                                         terms_accepted, acknowledgements_accepted }
+            → { checkout_url } → Stripe Checkout → the usual post-purchase journey.
+
+  Every figure comes from the API; the page only adds up the options it was given, line by line,
+  the same way Stripe charges them, and it never sends a price. No customer details live in
+  this file: everything is loaded with the token (drysafecp1 server/routes/quote.js).
+  The terms below are the same DrySafe Mould Terms and Conditions as the booking pop-up on /.
+-->
+<style>
+  :root{
+    --blue:#2488EA; --darkblue:#0f6bc8; --green:#228B22; --darkgreen:#1a6f1a;
+    --dark:#1a1a1a; --grey:#5f6b7a; --light:#F4F7FA; --lightblue:#E8F4FF; --lightgreen:#E7F4E8;
+    --border:#d5dde7; --border2:#e3e8ef; --red:#D8433B;
+    --bg:#F4F7FA; --card:#ffffff; --input:#ffffff;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --dark:#eef2f6; --grey:#9aa7b5; --bg:#0f1720; --card:#16202b; --input:#111a24;
+      --border:#2a3745; --border2:#22303d; --lightblue:#13293f; --lightgreen:#13301b; --light:#111a24;
+    }
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:var(--dark);background:var(--bg);line-height:1.5;font-size:16px;-webkit-font-smoothing:antialiased}
+  a{color:var(--blue)}
+
+  .hdr{background:var(--card);border-bottom:1px solid var(--border2)}
+  .hdr-in{max-width:1120px;margin:0 auto;padding:14px 24px;display:flex;align-items:center;gap:18px}
+  .logo{display:flex;align-items:center;text-decoration:none}
+  .logo img{height:40px;width:auto;display:block}
+  .portal-tag{font-family:Poppins,Inter,sans-serif;font-weight:600;font-size:19px;letter-spacing:-0.01em;line-height:1;border-left:1px solid var(--border);padding-left:18px;white-space:nowrap}
+  .portal-tag .a{color:var(--blue)} .portal-tag .b{color:var(--darkblue)}
+  @media (max-width:480px){.hdr-in{gap:12px}.logo img{height:32px}.portal-tag{font-size:15px;padding-left:12px}}
+
+  .wrap{max-width:680px;margin:0 auto;padding:40px 24px 64px}
+  @media (max-width:600px){.wrap{padding:24px 16px 48px}}
+  .intro{margin-bottom:24px}
+  .eyebrow{font-size:13px;color:var(--grey);margin:0 0 6px}
+  h1{font-size:30px;line-height:1.15;font-weight:600;letter-spacing:-0.02em;margin:0 0 8px}
+  @media (max-width:600px){h1{font-size:25px}}
+  .lede{font-size:16px;color:var(--grey);margin:0}
+
+  .sec{background:var(--card);border:1px solid var(--border);border-radius:12px;margin-bottom:16px;box-shadow:0 1px 3px rgba(15,34,58,.05)}
+  .sec-head{display:flex;align-items:center;gap:12px;padding:16px 24px;border-bottom:1px solid var(--border2)}
+  .sec-head .n{width:26px;height:26px;border-radius:50%;background:var(--blue);color:#fff;font-size:13px;font-weight:600;display:inline-flex;align-items:center;justify-content:center;flex:0 0 26px}
+  .sec-head h2{font-size:17px;font-weight:600;margin:0;flex:1}
+  .sec-body{padding:20px 24px 24px}
+  @media (max-width:600px){.sec-head{padding:14px 18px}.sec-body{padding:18px 18px 20px}}
+
+  .note-blue{background:var(--lightblue);border-radius:10px;padding:12px 14px;font-size:14.5px;line-height:1.5;margin:0 0 18px}
+  .hint-line{font-size:13.5px;color:var(--grey);margin:0 0 14px}
+
+  /* Option cards: real checkboxes, any combination. */
+  .opts{display:grid;gap:12px;margin-bottom:16px}
+  .opt{display:flex;gap:14px;align-items:flex-start;padding:16px 18px;border:1.5px solid var(--border);border-radius:12px;cursor:pointer;background:var(--input);position:relative}
+  .opt:has(input:checked){border-color:var(--blue);background:var(--lightblue)}
+  .opt:has(input:focus-visible){box-shadow:0 0 0 3px rgba(36,136,234,.25)}
+  .opt input{position:absolute;opacity:0;width:0;height:0}
+  .opt .box{margin-top:3px}
+  .opt:has(input:checked) .box{background:var(--blue);border-color:var(--blue)}
+  .opt-main{flex:1;min-width:0}
+  .opt-top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+  .opt-title{font-weight:600;font-size:16px;margin:0}
+  .opt .chip{display:inline-block;margin:4px 0 0;background:var(--lightgreen);color:var(--green);font-size:11px;font-weight:600;padding:2px 8px;border-radius:999px}
+  .opt-price{text-align:right;white-space:nowrap}
+  .opt-price .amt{font-size:18px;font-weight:700;display:block}
+  .opt-price .sub{font-size:12px;color:var(--grey);display:block}
+  .opt-summary{font-size:14px;color:var(--grey);margin:8px 0 0}
+  .opt-info{display:inline-block;font-size:13.5px;margin-top:8px}
+  @media (max-width:480px){.opt-top{flex-direction:column;gap:6px}.opt-price{text-align:left}}
+
+  .breakdown{background:var(--light);border-radius:10px;padding:14px 16px;margin:0;font-size:14.5px}
+  .breakdown .row{display:flex;justify-content:space-between;gap:12px;padding:3px 0}
+  .breakdown .row span:first-child{min-width:0}
+  .breakdown .row.sub{border-top:1px solid var(--border2);margin-top:6px;padding-top:8px}
+  .breakdown .row.total{border-top:1px solid var(--border2);margin-top:6px;padding-top:8px;font-weight:700;font-size:16px}
+  .breakdown .empty{color:var(--grey);margin:0}
+
+  .kv{display:grid;grid-template-columns:110px 1fr;gap:8px 16px;font-size:15px;margin:0 0 18px}
+  @media (max-width:480px){.kv{grid-template-columns:1fr;gap:2px 0}.kv dt{margin-top:8px}}
+  .kv dt{color:var(--grey);margin:0}
+  .kv dd{margin:0;font-weight:500}
+  .field{margin-bottom:16px}
+  .lbl{display:block;font-weight:500;font-size:15px;margin-bottom:8px}
+  .help{font-size:13px;color:var(--grey);margin:6px 0 0}
+  .err{display:none;font-size:13px;color:var(--red);margin-top:6px}
+  .field.invalid .err{display:block} .field.invalid input{border-color:var(--red)}
+  input[type=email],input[type=tel]{width:100%;font:inherit;font-size:16px;color:var(--dark);background:var(--input);border:1.5px solid var(--border);border-radius:8px;padding:12px 14px;outline:none}
+  input:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(36,136,234,.18)}
+
+  .accept{display:flex;gap:12px;align-items:flex-start;padding:14px 16px;border:1.5px solid var(--border);border-radius:10px;cursor:pointer;background:var(--input);margin-bottom:12px;font-size:14.5px;position:relative}
+  .accept.disabled{opacity:.55;cursor:not-allowed}
+  .accept:has(input:checked){border-color:var(--green);background:var(--lightgreen)}
+  .accept:has(input:focus-visible){box-shadow:0 0 0 3px rgba(36,136,234,.25)}
+  .accept input{position:absolute;opacity:0;width:0;height:0}
+  .box{width:20px;height:20px;border:1.5px solid var(--border);border-radius:5px;display:inline-flex;align-items:center;justify-content:center;flex:0 0 20px;background:var(--card);margin-top:2px}
+  .accept:has(input:checked) .box{background:var(--green);border-color:var(--green)}
+  .box svg{display:none;width:12px;height:12px}
+  .accept:has(input:checked) .box svg,.opt:has(input:checked) .box svg{display:block}
+  .accept .hint{display:block;font-size:13px;color:var(--grey);margin-top:2px}
+
+  .terms-wrap{border:1.5px solid var(--border);border-radius:10px;overflow:hidden;margin:6px 0 12px}
+  .terms-bar{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:var(--light);font-size:13px;color:var(--grey);border-bottom:1px solid var(--border2)}
+  .terms-bar b{color:var(--dark);font-weight:600}
+  .terms-bar button{font:inherit;font-size:13px;color:var(--blue);background:none;border:0;cursor:pointer;padding:0}
+  .terms{height:260px;overflow-y:auto;padding:14px 16px;font-size:13px;line-height:1.55;color:var(--dark);background:var(--input)}
+  .terms h5{font-size:13px;font-weight:600;margin:16px 0 6px} .terms h5:first-child{margin-top:0}
+  .terms h6{font-size:12.5px;font-weight:600;margin:12px 0 4px}
+  .terms p{margin:0 0 8px} .terms ul{margin:0 0 8px;padding-left:18px}
+  .terms hr{border:0;border-top:1px solid var(--border2);margin:12px 0}
+  .terms table{border-collapse:collapse;width:100%;margin:6px 0 10px;font-size:12px}
+  .terms td,.terms th{border:1px solid var(--border2);padding:6px 8px;vertical-align:top;text-align:left}
+
+  .btn{display:inline-flex;align-items:center;justify-content:center;font:inherit;font-weight:600;font-size:17px;padding:15px 22px;border-radius:999px;border:0;cursor:pointer;text-decoration:none;width:100%;min-height:56px}
+  .btn-pay{background:var(--green);color:#fff} .btn-pay:hover{background:var(--darkgreen)}
+  .btn-blue{background:var(--blue);color:#fff;width:auto;border-radius:8px;font-size:16px;padding:13px 22px;min-height:0} .btn-blue:hover{background:var(--darkblue)}
+  .btn:disabled{opacity:.55;cursor:wait}
+  .btn:focus-visible{outline:3px solid rgba(36,136,234,.4);outline-offset:2px}
+  .secure{display:flex;justify-content:center;align-items:center;gap:6px;margin:10px 0 0;font-size:13px;color:var(--grey);text-align:center}
+  .err-box{display:block;margin:0 0 12px;padding:10px 12px;border:1px solid var(--red);border-radius:8px;color:var(--red);font-size:14px;line-height:1.45}
+  .err-box[hidden]{display:none}
+
+  .status{text-align:center;padding:36px 24px 40px}
+  .tick{width:56px;height:56px;border-radius:50%;background:var(--lightgreen);display:inline-flex;align-items:center;justify-content:center;margin-bottom:18px}
+  .status .lede{margin-bottom:20px}
+  .booked{list-style:none;padding:0;margin:0 auto 24px;max-width:440px;text-align:left}
+  .booked li{padding:8px 0;border-bottom:1px solid var(--border2);font-size:15px}
+  .booked li:last-child{border-bottom:0}
+  .ref-line{font-size:13px;color:var(--grey);margin-top:20px}
+
+  .ftr{max-width:1120px;margin:0 auto;padding:0 24px 40px;font-size:12px;color:var(--grey);display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
+  .ftr a{color:var(--grey)}
+  .hidden{display:none !important}
+</style>
+</head>
+<body>
+
+<header class="hdr">
+  <div class="hdr-in">
+    <a class="logo" href="/" aria-label="DrySafe home">
+      <img src="/img/logo-portal.png" alt="DrySafe" width="1462" height="428">
+    </a>
+    <span class="portal-tag"><span class="a">Your</span> <span class="b">quote</span></span>
+  </div>
+</header>
+
+<!-- Loading and every non-quote state (invalid link, expired, unavailable, error). -->
+<main class="wrap" id="status-page" aria-live="polite">
+  <div class="sec"><div class="status">
+    <h1 id="status-title">Loading your quote…</h1>
+    <p class="lede" id="status-body">One moment.</p>
+    <p class="hidden" id="status-retry"><button type="button" class="btn btn-blue" id="retry">Try again</button></p>
+  </div></div>
+</main>
+
+<main class="wrap hidden" id="quote-page">
+  <div class="intro">
+    <p class="eyebrow" id="q-ref"></p>
+    <h1>Your mould remediation quote</h1>
+    <p class="lede" id="q-lede"></p>
+  </div>
+
+  <p class="note-blue hidden" id="cancel-note" role="status">Your payment wasn't completed and nothing has been charged. You can choose your options and try again below.</p>
+
+  <section class="sec" aria-labelledby="h-1">
+    <div class="sec-head"><span class="n">1</span><h2 id="h-1">Choose your works</h2></div>
+    <div class="sec-body">
+      <p class="hint-line" id="choose-hint">Choose one or more options.</p>
+      <p class="err-box" id="err-options" hidden>Please choose at least one option.</p>
+      <div class="opts" id="opts"></div>
+      <div class="breakdown" id="breakdown" aria-live="polite"></div>
+    </div>
+  </section>
+
+  <section class="sec" aria-labelledby="h-2">
+    <div class="sec-head"><span class="n">2</span><h2 id="h-2">Your details</h2></div>
+    <div class="sec-body">
+      <dl class="kv">
+        <dt>Name</dt><dd id="d-name"></dd>
+        <dt>Property</dt><dd id="d-addr"></dd>
+      </dl>
+      <div class="field" id="f-phone">
+        <label class="lbl" for="phone">Mobile</label>
+        <input type="tel" id="phone" autocomplete="tel" inputmode="tel" placeholder="04xx xxx xxx">
+        <p class="help">We'll text your booking confirmation and tracking link to this number.</p>
+        <p class="err">Please enter an Australian mobile number, for example 0412 345 678.</p>
+      </div>
+      <div class="field" id="f-email">
+        <label class="lbl" for="email">Email</label>
+        <input type="email" id="email" autocomplete="email" placeholder="you@example.com">
+        <p class="help">Your receipt and terms will be emailed here.</p>
+        <p class="err">Please check your email address.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec" aria-labelledby="h-3">
+    <div class="sec-head"><span class="n">3</span><h2 id="h-3">Agree and pay</h2></div>
+    <div class="sec-body">
+      <label class="accept">
+        <input type="checkbox" id="ack-staining">
+        <span class="box" aria-hidden="true"><svg viewBox="0 0 12 12" fill="none" stroke="#fff" stroke-width="2"><path d="M2 6.5 5 9l5-6"/></svg></span>
+        <span>I acknowledge that staining of walls and ceilings due to mould contamination may not be removed during the process. The process alleviates the contamination on the surface; however, residual staining may require further treatment, including encapsulation and re-painting.</span>
+      </label>
+      <label class="accept">
+        <input type="checkbox" id="ack-inclusions">
+        <span class="box" aria-hidden="true"><svg viewBox="0 0 12 12" fill="none" stroke="#fff" stroke-width="2"><path d="M2 6.5 5 9l5-6"/></svg></span>
+        <span>I have read and understood what the options I have chosen include, as described above and in my assessment report. The works cover the listed surfaces and items only — ductwork, air conditioning systems, subfloors and wall cavities are not included.</span>
+      </label>
+
+      <div class="terms-wrap">
+        <div class="terms-bar"><b>Terms and Conditions</b><button type="button" id="terms-jump">Jump to the end ↓</button></div>
+        <div class="terms" id="terms" tabindex="0" role="region" aria-label="Terms and Conditions">
+<p>TERMS AND CONDITIONS</p>
+<h5>DrySafe Response Group — Mould Remediation Services</h5>
+<hr>
+<h5>1. BOOKING AND PACKAGE SELECTION</h5>
+<p>By purchasing a service package from DrySafe Response Group, you agree to these terms and conditions. Your package selection determines the specific services to be provided, and you acknowledge that you have been presented with the full range of available options. The mould remediation packages relate to the treatment of surface mould on the surfaces expressly included in your selected package only. You acknowledge that the extent of surfaces treated (for example, wall surfaces only, or the addition of window sills, door / window tracks and ceiling surfaces) is determined by the package and any upgrades you select.</p>
+<hr>
+<h5>2. SERVICE ACTIVITIES &amp; DEFINITIONS</h5>
+<p>The following table outlines the activities that may be performed during your service:</p>
+<table><thead><tr><th>Service Activity</th><th>Description</th></tr></thead><tbody><tr><td><strong>Visual Mould Assessment</strong></td><td>A visual assessment of mould presence on wall surfaces in the room. Only areas that are visible and not covered by furniture / contents items are assessed. Furniture and contents will not be relocated or shifted.</td></tr><tr><td><strong>Surface HEPA Vacuum (Walls Only)</strong></td><td>HEPA vacuum of wall surfaces only. Will only be performed on areas that are visible and not covered by furniture / contents items. Floors, ceilings and contents items are excluded unless expressly included by your selected package.</td></tr><tr><td><strong>Anti-microbial Application</strong></td><td>Surface application to the surfaces included in your selected package (wall surfaces; and where the HomeProtect upgrade is selected, window sills, door / window tracks and ceiling surfaces). Will only be performed on areas that are visible and not covered by clothing/furniture/contents items. If there are specific concerns or further details required regarding the anti-microbial product, it is the responsibility of the customer or resident to obtain this information from the DrySafe Response Group office and to raise any concerns with the attending technician prior to application. Unless such enquiries are made and addressed beforehand, the application will proceed as part of the approved works included in the customer's selected package.</td></tr><tr><td><strong>Furniture Protection / Encapsulation</strong></td><td>Furniture and contents items within the work area are protected / encapsulated with plastic sheeting prior to works commencing. Items will not be relocated or shifted.</td></tr><tr><td><strong>Furniture Adjustment (Max 15kg)</strong></td><td>Adjustment / repositioning of furniture items less than 15kg to enable access to affected wall surfaces. Items over 15kg will not be lifted or moved.</td></tr><tr><td><strong>Anti-microbial + HEPA Vacuum — Window Sills &amp; Door / Window Tracks</strong></td><td>Application of anti-microbial and HEPA vacuum to window sills and door / window tracks. Will only be performed on areas that are visible and accessible.</td></tr><tr><td><strong>Anti-microbial + HEPA Vacuum — Ceiling Surfaces</strong></td><td>Application of anti-microbial and HEPA vacuum to ceiling surfaces inside the room. Will only be performed on areas that are safely reachable.</td></tr><tr><td><strong>Air Filtration Device (AFD) Operation</strong></td><td>One air filtration device operated in the room during the works only (minimum 15 minutes, maximum 2 hours of operation). The device must have adequate space around its perimeter and is removed on completion of the visit; no equipment remains on site.</td></tr><tr><td><strong>Dehumidification Operation</strong></td><td>One dehumidifier operated in the room during the works only (minimum 15 minutes, maximum 2 hours of operation). The unit is removed on completion of the visit; no equipment remains on site.</td></tr><tr><td><strong>Thermal Imaging</strong></td><td>5x thermal images per room including one image per wall (four walls total) as well as an image of the ceiling inside that room.</td></tr><tr><td><strong>Moisture Report</strong></td><td>One surface reading of either skirting, wall lining or subfloor. One relative humidity reading inside the room, captured during the visit.</td></tr><tr><td><strong>Works Report &amp; Scope</strong></td><td>Before/after images will be captured by room and a full activity list of what works were performed will also be included, together with a scope of any recommended further works.</td></tr></tbody></table>
+<hr>
+<h5>3. SCOPE OF WORK LIMITATIONS</h5>
+<p>Your package clearly stipulates what is included for each room you have paid for. No additional services will be provided unless through a good faith gesture of generosity by DrySafe Response Group. DrySafe Response Group is a registered brand of Ekon Enterprises Pty Ltd. DrySafe Response Group addresses surface mould on the surfaces included in your selected package only and is not responsible for pre-existing conditions, structural defects, or consequential issues discovered during works.</p>
+<p>Mould remediation works are limited to visible and accessible surfaces expressly included in your selected package (wall surfaces under Basic Savings and drySafe Care; window sills, door / window tracks and ceiling surfaces only where the HomeProtect upgrade is selected). No invasive or structural works are included: DrySafe Response Group will not remove, open, or cut plasterboard, wall linings, flooring or other building materials, and will not perform works within wall cavities, ceiling voids, subfloors or other concealed spaces. The identification and rectification of moisture sources (including but not limited to leaks, rising damp, condensation, and ventilation deficiencies) is not included in any mould package and remains your responsibility.</p>
+<p>You acknowledge that you have been presented with a full range of options for DrySafe Response Group's services and scope of works and have made your package selection independently.</p>
+<hr>
+<h5>5. EQUIPMENT OPERATION — NO EQUIPMENT REMAINS ON SITE</h5>
+<p>All equipment used in the delivery of mould remediation packages (including air filtration devices and dehumidifiers, where included in your package) operates during the technician's attendance only, for a minimum of 15 minutes and a maximum of 2 hours of operation, and is removed on completion of the visit. No equipment remains on site after the works, there is no equipment hire period, and no return collection visit is required or scheduled.</p>
+<hr>
+<h5>6. EQUIPMENT SAFETY &amp; HANDLING</h5>
+<p>You acknowledge your duty of care to ensure that all equipment operated by DrySafe Response Group is not relocated during operation and to minimise handling of such equipment. You understand the importance of maintaining awareness of electrical cords as trip hazards while equipment is operating during the works, and that inlet and outlet positions for air filtration devices and dehumidifiers must not be repositioned or obstructed. You will not relocate, interfere, or otherwise handle any equipment. You will ensure occupants, children and pets are kept clear of operating equipment for the duration of the works.</p>
+<hr>
+<h5>7. TECHNICAL LIMITATIONS &amp; ANALYTICS</h5>
+<p>You acknowledge that moisture analytics are relative measurements, not absolute values, and are dynamic in nature (meaning they can change shortly after they are taken). These readings provide indicative information rather than precise moisture content levels. You acknowledge that thermal imaging captures temperature differentials rather than precise moisture content and has limitations relating to image calibration dynamics, distance, and restrictions within the room that may affect the capture of thermal imagery. These images provide indicative information to assist in assessment but are not definitive moisture measurements.</p>
+<p>You acknowledge that the visual mould assessment is an assessment of visible surface mould only. Mould may exist in locations that cannot be identified by visual assessment, including within wall cavities, ceiling voids, subfloors, behind fixtures, fittings, furniture and contents, and in other concealed spaces. DrySafe Response Group makes no representation as to the presence or absence of mould in areas that were not visible and accessible at the time of attendance. No air quality, air sampling, or airborne spore testing is performed under these packages, and DrySafe Response Group makes no representation regarding airborne mould spore levels within the property before or after the works.</p>
+<hr>
+<h5>8. ANTI-MICROBIAL CONSENT &amp; CHEMICAL USE</h5>
+<p>You provide full consent for the application of anti-microbial products as described in this agreement. You acknowledge that due diligence has been undertaken regarding the safety and efficacy of these products, and you indemnify DrySafe Response Group against any claims regarding health impacts arising from the proper application of these TGA-approved products. You consent to the use of any chemicals and solutions that are deemed necessary to facilitate the works. The company has provided an explanation of the substances to be used, and you agree to their application.</p>
+<p>The anti-microbial product used by DrySafe Response Group is listed on the Australian Register of Therapeutic Goods (ARTG listing number AUST L 332364) and is applied in accordance with the manufacturer's directions. The product data sheet is available from the DrySafe Response Group office on request prior to attendance, and it is your responsibility to review it and to disclose, before application, any known sensitivities, allergies or medical conditions of any occupant (including pets) that may be relevant to the application of the product. You agree to keep all occupants and pets clear of treated areas during application and for the ventilation period advised by the technician. Application of the anti-microbial product to treated surfaces does not sterilise the property and is not represented or warranted to prevent the future growth or recurrence of mould on treated or untreated surfaces.</p>
+<hr>
+<h5>8A. NO GUARANTEE OF COMPLETE MOULD REMOVAL &amp; RECURRENCE</h5>
+<p>Mould is a naturally occurring organism, and mould spores are present in virtually all indoor and outdoor environments. The works under your selected package are limited to the treatment of visible surface mould on the surfaces included in that package, within the rooms you have paid for. You acknowledge and agree that DrySafe Response Group does not represent, warrant or guarantee: (a) that all mould (visible or concealed) within the property will be removed; (b) that treated surfaces will remain free of mould following the works; or (c) that mould will not develop or recur on treated or untreated surfaces at any time after the works.</p>
+<p>Indoor environmental conditions are dynamic and outside DrySafe Response Group's control, including but not limited to humidity, temperature, ventilation, condensation, water ingress, occupant activity and seasonal variation. These conditions materially affect whether mould develops or recurs. Surface mould remediation does not identify or rectify the underlying moisture source or environmental conditions that caused or contributed to the mould. You are responsible for engaging appropriately qualified trades or consultants to identify and rectify any moisture source or contributing condition, and you acknowledge that a failure to do so is likely to result in the recurrence of mould regardless of the works performed.</p>
+<p>The works do not constitute a mould clearance, and no clearance certificate is issued. Any reports provided are observational records of conditions at the time of attendance only and are not a certification, warranty, or substitute for an independent post-remediation verification. Should you require independent verification or air quality testing, this may be arranged at your election and cost through an appropriately qualified occupational hygienist.</p>
+<hr>
+<h5>8B. NO HEALTH OR MEDICAL ADVICE</h5>
+<p>It is DrySafe Response Group company policy that DrySafe Response Group, its employees, technicians, contractors and representatives do not provide health or medical advice under any circumstances. Nothing in these terms, our services, reports, communications, marketing materials or any statement made by our personnel constitutes health or medical advice, or a representation regarding the health effects of mould or mould exposure, or the suitability of the property for occupation by any person (including without limitation infants, children, elderly persons, pregnant persons, immunocompromised persons, or persons with respiratory or other medical conditions or sensitivities). Any questions or concerns regarding health, including any symptoms or conditions you believe may be related to mould, must be directed to a qualified medical practitioner. Decisions regarding occupation of the property before, during or after the works are yours alone. DrySafe Response Group technicians are instructed to decline to answer health-related questions and to refer you to your medical practitioner.</p>
+<hr>
+<h5>9. WORK AREA &amp; FURNITURE LIMITATIONS</h5>
+<p>You acknowledge that furniture adjustment (where included in your selected package) will only be performed on items with a gross weight of 15kg or less. Items exceeding this weight limit will not be lifted or moved for safety and practical reasons, and surfaces obstructed by such items will not be treated. Furniture protection / encapsulation (where included in your selected package) is a protective covering only and is not a representation that covered items cannot be affected by the works or by mould. You acknowledge that all works will be performed based on the existing condition of the room and that no furniture or contents items will be relocated by DrySafe Response Group technicians as part of the service, other than the adjustment of items under 15kg where that activity is included in your selected package.</p>
+<hr>
+<h5>10. CUSTOMER RESPONSIBILITIES &amp; VALUABLES</h5>
+<p>You are responsible for:</p>
+<ul><li>Ensuring fragile and valuable items are protected and/or relocated before works commence</li><li>Supervising vulnerable occupants and minors during service delivery</li><li>Providing safe access to work areas</li><li>Disclosing any hazards, risks, or dangers that could compromise technician safety</li><li>Being present during completion or arranging an authorised representative</li><li>Securing pets, providing parking for company vehicles, and ensuring work areas are clear of obstructions</li><li>Ventilating the property following the works in accordance with any guidance provided by the technician, and identifying and rectifying any moisture source or environmental condition contributing to mould</li></ul>
+<p>DrySafe Response Group accepts no responsibility for damage to items that remain in the work area during service delivery.</p>
+<hr>
+<h5>11. HAZARD MITIGATION &amp; SAFETY DISCLOSURE</h5>
+<p>You confirm that all known hazards within the property have been mitigated to the best of your knowledge. DrySafe Response Group has conducted a thorough risk assessment and has implemented necessary safety measures to ensure the work area is secure before work begins. You confirm that there are no concealed hazards, risks, or dangers within the property that could compromise the safety of technicians or company employees during the works. You agree to disclose any conditions, events, or circumstances that could present a risk.</p>
+<hr>
+<h5>12. HAZARDOUS MATERIALS</h5>
+<p>If hazardous materials such as asbestos or silica are identified, you agree to DrySafe Response Group's duty of care to its employees and will accept reasonable costs associated with testing to confirm whether hazardous materials are present. You understand, acknowledge, and agree that an additional timeframe may be required to complete the works following the completion of due diligence to ensure a safe working environment free of hazardous material. You accept that if hazardous material is found or suspected, DrySafe Response Group reserves the right to withdraw from any further involvement in the project and retains full discretion as to whether any refund of prepaid fees applies. There is no obligation for DrySafe Response Group to continue with works that have been pre-purchased by you as the customer if they determine that there is the potential for hazardous material to be present. You agree in full for DrySafe Response Group to undertake their safety procedures to complete full due diligence in such circumstances. You acknowledge that the extent of mould contamination cannot always be determined by visual assessment, and that if the attending technician forms the view that the extent, category or location of mould contamination is beyond the scope of your selected package or presents a risk to the safety of DrySafe Response Group personnel or occupants, DrySafe Response Group may pause or withdraw from the works and offer a revised scope, with any refund of prepaid fees at DrySafe Response Group's discretion acting reasonably.</p>
+<hr>
+<h5>13. SUPERVISION REQUIREMENTS</h5>
+<p>You agree to supervise any vulnerable occupants residing within the property during the works. No vulnerable individuals will be left unsupervised during the process. You confirm that no children or minors under the age of 18 will be present without adult supervision while works are being carried out. If minors are present, you accept full responsibility for their safety and wellbeing, ensuring they are kept away from equipment, chemicals, vehicles, and tools. You consent to being on-site during the works and assume responsibility for ensuring that any minors present are supervised throughout the duration of the works.</p>
+<hr>
+<h5>14. DOCUMENTATION &amp; IMAGE CONSENT</h5>
+<p>You grant permission to DrySafe Response Group to photograph contents, possessions, and elements of the property solely for internal documentation, record-keeping, reporting and quality assurance purposes.</p>
+<hr>
+<h5>15. EQUIPMENT OPERATION &amp; ACCESS RESTRICTIONS</h5>
+<p>You authorise DrySafe Response Group to operate all necessary equipment and materials to complete the agreed-upon works at the property. You understand that the works may require temporary adjustments to the layout or structure of the property, and you fully consent to these works as outlined. You consent to temporary restriction of access to certain areas of the property, both internally and externally, for the duration of the works to ensure safety and effectiveness of the project. You agree to make yourself available for any future or subsequent appointments that may be necessary to allow the company to complete the project. All equipment operates during the technician's attendance only and is removed on completion of the visit, in accordance with Section 5.</p>
+<hr>
+<h5>16. FINANCIAL OBLIGATIONS</h5>
+<p>You agree to bear the cost of electricity used by the equipment during the works necessary for completion of the works within the property. You agree to pay in full all fees for services provided within seven (7) business days. Late fees and interest charges of 1.5% will apply if the account falls into arrears.</p>
+<hr>
+<h5>17. MATERIAL REMOVAL &amp; DISPOSAL</h5>
+<p>The mould remediation packages do not include the removal or disposal of flooring, floor coverings, wall linings, building materials or contents items. If, during the works, DrySafe Response Group forms the view that the removal of any material is necessary or that conditions exceed the scope of your selected package, the works may be paused and a revised scope offered to you; no such removal will be performed without your prior agreement. If hazardous materials such as asbestos or silica are identified, you agree and acknowledge DrySafe Response Group's duty of care to its employees and will accept reasonable costs associated with testing to confirm whether hazardous materials are present. You understand, acknowledge, and agree that an additional timeframe may be required to complete the works following the completion of due diligence to ensure a safe working environment free of hazardous material. You accept that if hazardous material is found or suspected, DrySafe Response Group reserves the right to withdraw from any further involvement in the project and retains full discretion as to whether any refund of prepaid fees applies. There is no obligation for DrySafe Response Group to continue with works that have been pre-purchased by you as the customer if they determine that there is the potential for hazardous material to be present. You agree in full for DrySafe Response Group to undertake their safety procedures to complete full due diligence in such circumstances.</p>
+<hr>
+<h5>18. LIABILITY LIMITATIONS</h5>
+<p><strong>Limitation of Liability:</strong> DrySafe Response Group's aggregate liability under this agreement is limited to the total fees paid for the services. DrySafe Response Group's total liability, whether in contract, tort, or otherwise, shall not exceed this amount under any circumstances.</p>
+<p><strong>Exclusion of Consequential/Indirect Loss:</strong> DrySafe Response Group will not be responsible for any indirect, consequential, special, incidental, or punitive damages, including but not limited to lost profits, business interruption, loss of data, loss of use, loss of income, loss of business opportunities, damage to reputation, or any other economic losses, regardless of whether DrySafe Response Group has been advised of the possibility of such damages and regardless of the legal theory upon which such claim is based.</p>
+<p><strong>Acknowledgment of Property Conditions:</strong> You acknowledge the pre-existing state of your property and confirm that there are varying levels of wear and tear throughout the property that DrySafe Response Group cannot be held liable for. You understand that outcomes for the service also depend on factors outside DrySafe Response Group's control, including but not limited to the age and condition of materials, environmental factors, and the extent of the original damage.</p>
+<p><strong>Mould-Specific Limitations:</strong> Without limiting the foregoing, and to the maximum extent permitted by law, DrySafe Response Group is not liable for: (a) the recurrence, regrowth or development of mould on treated or untreated surfaces after the works; (b) any loss or damage arising from mould in areas that were concealed or not visible and accessible at the time of attendance; or (c) any loss or damage arising from your failure to identify and rectify moisture sources or environmental conditions contributing to mould.</p>
+<p><strong>Australian Consumer Law:</strong> Nothing in these terms excludes, restricts or modifies any consumer guarantee, right or remedy conferred on you by the Australian Consumer Law or any other applicable law that cannot lawfully be excluded, restricted or modified. To the extent permitted by law, DrySafe Response Group's liability for a failure to comply with a consumer guarantee is limited, at DrySafe Response Group's option, to the resupply of the services or the payment of the cost of resupplying the services.</p>
+<p><strong>Time Limits for Claims:</strong> Any claims relating to DrySafe Response Group's services or this agreement must be made in writing within seven (7) days after the technician's last attendance. Any claims not made within this time period shall be deemed waived and forever barred.</p>
+<hr>
+<h5>19. COMPLETION &amp; HANDOVER</h5>
+<p>Upon completion, DrySafe Response Group technicians will make themselves available for a reasonable period of time for any further or additional discussions for a duration of no more than five (5) business days. It is during this time that you agree to raise any reasonable concerns that you may have in relation to the work performed. After visit attendance, you acknowledge that all works are complete and if further discussions, explanations or works are required based on your interpretation or opinion, these must be raised with the team member prior to departure. DrySafe Response Group will not be obligated to return to the property to address any issues not raised during the handover. If you are not able to be present during the works, it is your responsibility to have an agent, family member or authorised representative present. Any further attendance beyond the five (5) business day window must be paid for in advance and will be charged at the hourly rate for a Project Manager, which is $105 per hour during business hours (Monday to Friday, 8:00 AM to 1:00 PM). For the avoidance of doubt, the appearance, development or recurrence of mould after the works is not a defect in the works and does not oblige DrySafe Response Group to return to the property (see Section 8A).</p>
+<hr>
+<h5>20. CANCELLATION AND REFUND POLICY</h5>
+<p><strong>Cancellation by Customer:</strong> You may cancel this agreement by written notice prior to the scheduled service date. Cancellations made within 48 hours of scheduled attendance will incur a cancellation fee of 50% of the package fee to cover scheduling and resource allocation costs. Once works have commenced, no refund will be issued for services already performed, and any refund will be limited to the value of uncompleted works, less reasonable costs incurred.</p>
+<p><strong>Termination by DrySafe Response Group:</strong> DrySafe Response Group reserves the right to terminate this agreement and withdraw from the works if: (a) site conditions present safety risks that put staff at WHS risk; (b) access to the property is not provided as agreed; (c) the scope of work materially differs from what was described; or (d) you engage in conduct that is abusive, threatening, or otherwise unreasonable. In such cases, any and all monies prepaid for the services will be forfeited.</p>
+<hr>
+<h5>21. DISPUTE RESOLUTION</h5>
+<p>Disputes will be resolved through good-faith negotiation in the first instance. If no resolution is reached within fourteen (14) days, the parties agree to pursue mediation before initiating escalated legal proceedings.</p>
+<hr>
+<h5>22. INSURANCE &amp; FORCE MAJEURE</h5>
+<p>DrySafe Response Group holds adequate public liability and workers' compensation insurance to protect against injury, damage, or loss. Proof of insurance can be provided upon request. Neither party shall be liable for failure to perform obligations due to circumstances beyond reasonable control, including natural disasters, war, pandemic, strikes, or government regulations. Works may be postponed until circumstances allow resumption.</p>
+<hr>
+<h5>23. CONFIDENTIALITY &amp; DATA HANDLING</h5>
+<p>You agree to keep confidential all information regarding DrySafe Response Group's scope of works, pricing, methodologies, and any proprietary processes, and will not disclose such information to third parties without prior written consent, except where required by law or regulatory authority.</p>
+<p>You acknowledge and consent that DrySafe Response Group will collect, store, and use personal information and project details within its project management systems for the purpose of delivering and managing the services under this agreement. DrySafe Response Group may retain this information following completion of the works for the purposes of:</p>
+<ul><li>Providing future services and maintaining service history</li><li>Communicating marketing offers, promotions, and updates regarding DrySafe Response Group services</li><li>Distributing educational and informational content relevant to property maintenance, restoration, and related matters</li></ul>
+<p>You may opt out of marketing communications at any time by following the opt-out area within the communication medium. Opting out of marketing will not affect the retention of information necessary for service records or legal compliance.</p>
+<p>DrySafe Response Group will handle all personal information in accordance with its Privacy Policy (Section 24 of these Terms) and applicable privacy legislation.</p>
+<hr>
+<h5>24. PRIVACY POLICY</h5>
+<h6>24.1 Introduction</h6>
+<p>DrySafe Response Group ("we", "us", or "our") is committed to protecting the privacy of your personal information. This Privacy Policy explains how we collect, use, store, and disclose personal information in accordance with the Privacy Act 1988 (Cth) and the Australian Privacy Principles (APPs).</p>
+<p>By engaging our services or providing your personal information to us, you acknowledge that you have read and understood this Privacy Policy and consent to the collection, use, and disclosure of your information as described herein.</p>
+<h6>24.2 Information We Collect</h6>
+<p>We may collect and hold the following types of personal information, and you explicitly provide your consent:</p>
+<p><strong>Identity and Contact Information</strong> — Your name, address, email address, telephone numbers, and other contact details necessary to communicate with you and deliver our services.</p>
+<p><strong>Property and Service Information</strong> — Details relating to your property, including address, property type, access arrangements, and information about the damage or works required. This may include photographs, reports, and documentation generated during the assessment and restoration process.</p>
+<p><strong>Payment Information</strong> — Payment details required to process transactions, including credit card information, bank account details, and billing addresses. Payment information is processed securely through our payment providers.</p>
+<p><strong>Insurance Information</strong> — Where applicable, details of your insurance policy, claim numbers, insurer details, and related correspondence required to facilitate insurance claims on your behalf.</p>
+<p><strong>Technical Information</strong> — When you interact with our website or online booking systems, we may collect technical information including IP addresses, browser type, device information, and usage data through cookies and similar technologies.</p>
+<h6>24.3 How We Collect Information</h6>
+<p>We collect personal information directly from you when you:</p>
+<ul><li>Make enquiries or request quotes</li><li>Place orders through our website or other channels</li><li>Enter into service agreements with us</li><li>Communicate with us via phone, email, or other means</li><li>Visit our website or use our online services</li><li>Provide feedback or participate in surveys</li></ul>
+<p>We may also collect information from third parties, including insurance companies, loss adjusters, property managers, real estate agents, and other parties involved in the restoration process, where you have authorised such disclosure or where permitted by law.</p>
+<h6>24.4 How We Use Your Information</h6>
+<p>We use your personal information for the following purposes:</p>
+<p><strong>Service Delivery</strong> — To provide, manage, and deliver our water damage restoration, fire restoration, mould remediation, and related services, including scheduling, project management, quality assurance, and follow-up communications.</p>
+<p><strong>Administration and Record Keeping</strong> — To manage our business operations, maintain accurate records, process payments, manage customer accounts, and comply with legal and regulatory obligations.</p>
+<p><strong>Communication</strong> — To communicate with you regarding your service, respond to enquiries, provide updates on project progress, and address any concerns or complaints.</p>
+<p><strong>Marketing and Education</strong> — Subject to your consent, to send you marketing communications, promotional offers, newsletters, and educational content relating to property maintenance, restoration services, and related matters. You may opt out of marketing communications at any time.</p>
+<p><strong>Service Improvement</strong> — To analyse and improve our services, develop new offerings, train our staff, and enhance customer experience.</p>
+<h6>24.5 Storage and Security</h6>
+<p>Your personal information is stored within our project management systems and business databases. We implement reasonable security measures to protect personal information from misuse, interference, loss, unauthorised access, modification, and disclosure.</p>
+<p>These measures include password protection, encryption, access controls, secure data storage, and staff training on privacy obligations. However, no method of electronic transmission or storage is completely secure, and we cannot guarantee absolute security.</p>
+<p>We retain your personal information for as long as necessary to fulfil the purposes for which it was collected, to provide ongoing services, to maintain service history for future reference, and to comply with legal obligations. Information may be retained following completion of services for administrative, legal, and business purposes.</p>
+<h6>24.6 Disclosure to Third Parties</h6>
+<p>We may disclose your personal information to:</p>
+<ul><li>Subcontractors and service providers engaged to assist in delivering our services</li><li>Insurance companies, loss adjusters, and claims managers in connection with insurance claims</li><li>Professional advisors including accountants and legal advisors</li><li>Government agencies and regulatory bodies where required by law</li><li>Third-party technology providers who support our business operations</li></ul>
+<p>We take reasonable steps to ensure that third parties to whom we disclose personal information are bound by confidentiality and privacy obligations consistent with this Policy.</p>
+<h6>24.7 Your Rights</h6>
+<p><strong>Access and Correction</strong> — You have the right to request access to the personal information we hold about you and to request correction of any inaccurate, incomplete, or outdated information. We will respond to access requests within a reasonable timeframe and may charge a reasonable fee for providing access.</p>
+<p><strong>Marketing Opt-Out</strong> — You may opt out of receiving marketing communications from us at any time by:</p>
+<ul><li>Contacting us using the details below</li><li>Clicking the unsubscribe link in our emails</li><li>Replying "STOP" to SMS communications</li></ul>
+<p>Opting out of marketing will not affect transactional communications relating to your services or the retention of information necessary for service records and legal compliance.</p>
+<h6>24.8 Cookies and Online Tracking</h6>
+<p>Our website may use cookies and similar tracking technologies to enhance your browsing experience, analyse website traffic, and understand user behaviour. You can manage cookie preferences through your browser settings. Disabling cookies may affect the functionality of certain features on our website.</p>
+<h6>24.9 Privacy Complaints</h6>
+<p>If you believe we have breached the Australian Privacy Principles or have concerns about how we have handled your personal information, please contact us using the details below. We will investigate your complaint and respond within a reasonable timeframe.</p>
+<p>If you are not satisfied with our response, you may lodge a complaint with the Office of the Australian Information Commissioner (OAIC) at www.oaic.gov.au.</p>
+<h6>24.10 Changes to This Policy</h6>
+<p>We may update this Privacy Policy from time to time to reflect changes in our practices or legal requirements. The current version will be available on our website. We encourage you to review this Policy periodically.</p>
+<hr>
+<h5>25. ACCEPTANCE</h5>
+<p>By completing your purchase, you acknowledge that you have read, understood, and agree to all terms, conditions, and acknowledgements stated in this document. These terms form part of your service agreement with DrySafe Response Group. You authorise DrySafe Response Group to perform the services outlined and accept full responsibility for all agreements made herein.</p>
+<hr>
+<h5>26. CONTACT US</h5>
+<p>If you have any questions about these Terms and Conditions or our Privacy Policy, wish to access or correct your personal information, or have a complaint, please contact us:</p>
+<p>DrySafe Response Group</p>
+<p>PO BOX 469<br>Round Corner NSW 2158<br>www.drysafe.sydney</p>
+<hr>
+<p><em>Last updated: 11 August 2026</em></p>
+        </div>
+      </div>
+      <label class="accept disabled" id="terms-accept">
+        <input type="checkbox" id="terms-ok" disabled>
+        <span class="box" aria-hidden="true"><svg viewBox="0 0 12 12" fill="none" stroke="#fff" stroke-width="2"><path d="M2 6.5 5 9l5-6"/></svg></span>
+        <span>I have read and agree to the DrySafe Mould Terms and Conditions and <a href="/privacy.html" target="_blank" rel="noopener">Privacy Policy</a>
+          <span class="hint" id="terms-hint">Scroll to the end of the terms to tick this box.</span></span>
+      </label>
+
+      <p class="err-box" id="err-pay" hidden role="alert"></p>
+      <button type="button" class="btn btn-pay" id="pay">Continue to secure checkout</button>
+      <p class="secure"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg><span id="pay-line">Secure Stripe checkout</span></p>
+    </div>
+  </section>
+</main>
+
+<!-- Already paid. -->
+<main class="wrap hidden" id="paid-page">
+  <div class="sec"><div class="status">
+    <div class="tick" aria-hidden="true"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#228B22" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></div>
+    <h1>These works are booked</h1>
+    <p class="lede">Thank you. Your payment has been received and our team will be in touch to arrange a time.</p>
+    <ul class="booked" id="paid-list"></ul>
+    <p class="hidden" id="paid-track"><a class="btn btn-blue" id="paid-track-link" href="#">Track this job</a></p>
+    <p class="ref-line" id="paid-ref"></p>
+  </div></div>
+</main>
+
+<footer class="ftr">
+  <span>DrySafe Response Group · ACN 061 879 141 · a registered brand of Ekon Enterprises Pty Ltd</span>
+  <span><a href="/privacy.html">Privacy</a> · <a href="tel:0420141128">0420 141 128</a></span>
+</footer>
+
+<script>
+(function () {
+  'use strict';
+
+  var params = new URLSearchParams(location.search);
+  var TOKEN = String(params.get('q') || '').trim().toLowerCase();
+  // Production API. On localhost only, ?api= points the page at a test server.
+  var LOCAL = /^(localhost|127\.0\.0\.1)$/.test(location.hostname);
+  var API_BASE = (LOCAL && params.get('api')) ? params.get('api') : 'https://drysafeapi.vercel.app';
+  var API = API_BASE.replace(/\/$/, '') + '/api/cp1/quote/';
+  var PHONE = '0420 141 128';
+
+  var quote = null;
+  var termsRead = false;
+  var busy = false;
+
+  function $(id) { return document.getElementById(id); }
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+  function cents(n) { return Math.round(Number(n) * 100); }
+  function money(c) {
+    return '$' + (c / 100).toLocaleString('en-AU', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+  function dateAu(iso) {
+    if (!iso) return '';
+    var d = new Date(String(iso).slice(0, 10) + 'T00:00:00');
+    if (isNaN(d)) return '';
+    return d.toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' });
+  }
+  function show(id) {
+    ['status-page', 'quote-page', 'paid-page'].forEach(function (x) { $(x).classList.toggle('hidden', x !== id); });
+    window.scrollTo(0, 0);
+  }
+  function status(title, body, retry) {
+    $('status-title').textContent = title;
+    $('status-body').innerHTML = body;
+    $('status-retry').classList.toggle('hidden', !retry);
+    show('status-page');
+  }
+  var CALL = 'call us on <a href="tel:0420141128">' + PHONE + '</a>';
+
+  // ── load ──────────────────────────────────────────────────────────────
+  function load() {
+    if (!/^[a-f0-9]{32}$/.test(TOKEN)) {
+      status('This quote link isn’t complete', 'Please open the link exactly as we sent it, or ' + CALL + '.');
+      return;
+    }
+    status('Loading your quote…', 'One moment.');
+    fetch(API + TOKEN, { headers: { Accept: 'application/json' } })
+      .then(function (r) {
+        return r.json().catch(function () { return {}; }).then(function (b) { return { status: r.status, body: b }; });
+      })
+      .then(function (res) {
+        if (res.status === 404) return status('We couldn’t find this quote', 'The link may be incomplete. Please ' + CALL + ' and we’ll sort it out.');
+        if (res.status === 503) return status('Online booking isn’t available right now', 'Please try again shortly, or ' + CALL + '.');
+        if (res.status !== 200) return status('Something went wrong', 'We couldn’t load your quote. Please try again, or ' + CALL + '.', true);
+        route(res.body);
+      })
+      .catch(function () {
+        status('Something went wrong', 'We couldn’t reach our booking system. Please check your connection and try again, or ' + CALL + '.', true);
+      });
+  }
+
+  function route(q) {
+    quote = q;
+    if (q.status === 'paid') return renderPaid(q);
+    if (q.status === 'expired') return status('This quote has expired', 'Prices and availability may have changed. Please ' + CALL + ' for an updated quote.');
+    if (q.status === 'cancelled') return status('This quote is no longer available', 'Please ' + CALL + ' if you’d like to go ahead with the works.');
+    renderQuote(q);
+  }
+
+  // ── open quote ────────────────────────────────────────────────────────
+  function renderQuote(q) {
+    $('q-ref').textContent = 'Quote ' + q.order_number;
+    var when = q.assessed_on ? ' on ' + dateAu(q.assessed_on) : '';
+    var hi = q.customer && q.customer.first_name ? 'Hi ' + q.customer.first_name + ', here' : 'Here';
+    var pick = q.options.length === 2 ? 'Choose one or both' : (q.options.length > 2 ? 'Choose one or more' : 'Review the option');
+    $('q-lede').textContent = hi + ' are the options from your mould assessment' + when + '. ' + pick + ', then pay securely to book the works.';
+    $('choose-hint').textContent = 'For ' + q.property.address + '. ' + (q.options.length > 1 ? 'Tick each option you’d like.' : '');
+    $('cancel-note').classList.toggle('hidden', params.get('cancelled') !== '1');
+
+    var single = q.options.length === 1;
+    $('opts').innerHTML = q.options.map(function (o) {
+      var checked = single || o.recommended ? ' checked' : '';
+      return '<label class="opt">' +
+        '<input type="checkbox" name="opt" value="' + esc(o.key) + '"' + checked + '>' +
+        '<span class="box" aria-hidden="true"><svg viewBox="0 0 12 12" fill="none" stroke="#fff" stroke-width="2"><path d="M2 6.5 5 9l5-6"/></svg></span>' +
+        '<span class="opt-main">' +
+          '<span class="opt-top">' +
+            '<span><span class="opt-title">' + esc(o.title) + '</span>' +
+              (o.recommended ? '<br><span class="chip">Recommended in your report</span>' : '') + '</span>' +
+            '<span class="opt-price"><span class="amt">' + money(cents(o.ex_gst)) + '</span><span class="sub">ex GST · ' + money(cents(o.inc_gst)) + ' inc GST</span></span>' +
+          '</span>' +
+          (o.summary ? '<span class="opt-summary" style="display:block">' + esc(o.summary) + '</span>' : '') +
+          (o.info_url ? '<a class="opt-info" href="' + esc(o.info_url) + '" target="_blank" rel="noopener">What’s included</a>' : '') +
+        '</span>' +
+      '</label>';
+    }).join('');
+    Array.prototype.forEach.call(document.querySelectorAll('input[name=opt]'), function (el) {
+      el.addEventListener('change', function () { $('err-options').hidden = true; renderTotals(); });
+    });
+
+    $('d-name').textContent = q.customer.name || '';
+    $('d-addr').textContent = q.property.address;
+    if (q.customer.phone && !$('phone').value) $('phone').value = q.customer.phone;
+    if (q.customer.email && !$('email').value) $('email').value = q.customer.email;
+    renderTotals();
+    show('quote-page');
+  }
+
+  function selectedOptions() {
+    var keys = Array.prototype.filter.call(document.querySelectorAll('input[name=opt]'), function (el) { return el.checked; })
+      .map(function (el) { return el.value; });
+    return quote.options.filter(function (o) { return keys.indexOf(o.key) !== -1; });
+  }
+
+  // Adds the selected lines up exactly as Stripe charges them: ex GST and GST per line.
+  function renderTotals() {
+    var sel = selectedOptions();
+    if (!sel.length) {
+      $('breakdown').innerHTML = '<p class="empty">No options chosen yet.</p>';
+      $('pay-line').textContent = 'Secure Stripe checkout';
+      return;
+    }
+    var ex = 0, gst = 0;
+    var rows = sel.map(function (o) {
+      ex += cents(o.ex_gst); gst += cents(o.gst);
+      return '<div class="row"><span>' + esc(o.title) + '</span><span>' + money(cents(o.ex_gst)) + '</span></div>';
+    }).join('');
+    $('breakdown').innerHTML = rows +
+      '<div class="row sub"><span>Subtotal (ex GST)</span><span>' + money(ex) + '</span></div>' +
+      '<div class="row"><span>GST</span><span>' + money(gst) + '</span></div>' +
+      '<div class="row total"><span>Total (inc GST)</span><span>' + money(ex + gst) + '</span></div>';
+    $('pay-line').textContent = 'Secure Stripe checkout · you’ll pay ' + money(ex + gst) + ' inc GST';
+  }
+
+  // ── terms: tick unlocks once the terms have been scrolled to the end ──
+  function unlockTerms() {
+    if (termsRead) return;
+    termsRead = true;
+    $('terms-ok').disabled = false;
+    $('terms-accept').classList.remove('disabled');
+    $('terms-hint').textContent = 'Thanks for reading the terms.';
+  }
+  $('terms').addEventListener('scroll', function () {
+    var t = $('terms');
+    if (t.scrollTop + t.clientHeight >= t.scrollHeight - 24) unlockTerms();
+  });
+  $('terms-jump').addEventListener('click', function () {
+    var t = $('terms');
+    t.scrollTop = t.scrollHeight;
+    unlockTerms();
+  });
+
+  // ── pay ───────────────────────────────────────────────────────────────
+  function phoneOk(v) { return /^(?:\+?61|0)4\d{8}$/.test(String(v).replace(/[\s()-]/g, '')); }
+  function emailOk(v) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(v).trim()); }
+  function fieldError(id, on) { $(id).classList.toggle('invalid', !!on); }
+  function payError(msg) {
+    $('err-pay').textContent = msg;
+    $('err-pay').hidden = !msg;
+  }
+  function setBusy(on) {
+    busy = on;
+    $('pay').disabled = on;
+    $('pay').textContent = on ? 'Taking you to secure checkout…' : 'Continue to secure checkout';
+  }
+
+  $('phone').addEventListener('input', function () { fieldError('f-phone', false); });
+  $('email').addEventListener('input', function () { fieldError('f-email', false); });
+
+  $('pay').addEventListener('click', function () {
+    if (busy || !quote) return;
+    payError('');
+    var sel = selectedOptions();
+    var phone = $('phone').value.trim();
+    var email = $('email').value.trim();
+    var firstBad = null;
+
+    $('err-options').hidden = sel.length > 0;
+    if (!sel.length) firstBad = firstBad || $('opts');
+    fieldError('f-phone', !phoneOk(phone));
+    if (!phoneOk(phone)) firstBad = firstBad || $('phone');
+    fieldError('f-email', !emailOk(email));
+    if (!emailOk(email)) firstBad = firstBad || $('email');
+    if (firstBad) {
+      firstBad.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      if (firstBad.focus && firstBad.tagName === 'INPUT') firstBad.focus();
+      return;
+    }
+    if (!$('ack-staining').checked || !$('ack-inclusions').checked) return payError('Please tick both acknowledgements.');
+    if (!$('terms-ok').checked) return payError('Please read the Terms and Conditions to the end and tick to agree.');
+
+    setBusy(true);
+    fetch(API + TOKEN + '/checkout', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify({
+        options: sel.map(function (o) { return o.key; }),
+        phone: phone,
+        email: email,
+        terms_accepted: true,
+        acknowledgements_accepted: true
+      })
+    })
+      .then(function (r) {
+        return r.json().catch(function () { return {}; }).then(function (b) { return { status: r.status, body: b }; });
+      })
+      .then(function (res) {
+        if (res.status === 200 && res.body.checkout_url) {
+          location.assign(res.body.checkout_url);
+          return;
+        }
+        setBusy(false);
+        var e = res.body && res.body.error;
+        if (res.status === 409) return load();              // already paid: show the booked page
+        if (res.status === 410) return route({ status: e === 'cancelled' ? 'cancelled' : 'expired' });
+        if (res.status === 503) return status('Online booking isn’t available right now', 'Please try again shortly, or ' + CALL + '.');
+        if (e === 'invalid_phone') { fieldError('f-phone', true); $('phone').focus(); return; }
+        if (e === 'invalid_email') { fieldError('f-email', true); $('email').focus(); return; }
+        if (e === 'invalid_options') { $('err-options').hidden = false; return; }
+        payError('We couldn’t start the secure checkout. Please try again, or call us on ' + PHONE + '.');
+      })
+      .catch(function () {
+        setBusy(false);
+        payError('We couldn’t reach our booking system. Please check your connection and try again.');
+      });
+  });
+
+  // ── already paid ──────────────────────────────────────────────────────
+  function renderPaid(q) {
+    var paid = q.paid || {};
+    var keys = paid.selected_options || [];
+    var items = q.options.filter(function (o) { return keys.indexOf(o.key) !== -1; });
+    $('paid-list').innerHTML = items.map(function (o) { return '<li>' + esc(o.title) + '</li>'; }).join('');
+    $('paid-list').classList.toggle('hidden', !items.length);
+    if (paid.track_url) {
+      $('paid-track-link').href = paid.track_url;
+      $('paid-track').classList.remove('hidden');
+    }
+    $('paid-ref').textContent = 'Order ' + (paid.order_number || q.order_number) + ' · ' + q.property.address;
+    show('paid-page');
+  }
+
+  // Back from Stripe with the browser's back button: reload so a payment that just
+  // went through shows as booked rather than an open quote.
+  window.addEventListener('pageshow', function (e) { if (e.persisted) load(); });
+  $('retry').addEventListener('click', load);
+  load();
+})();
+</script>
+</body>
+</html>
