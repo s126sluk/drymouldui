@@ -819,12 +819,22 @@ const P = {
       if(!v.name){ $('#tname').focus(); return; } if(!v.phone){ $('#tphone').focus(); return; } if(!v.email){ $('#temail').focus(); return; }
       if(!notesOk){ $('#access-notes').focus(); return; }
       state.tenant = t;
-      setDone('s2', 'Tenant: ' + t.name + ' · ' + t.phone);
+      setDone('s2', 'Tenant: ' + t.name + ' · ' + t.phone + this.notesSummary(notes));
     } else {
       if(!notesOk){ $('#access-notes').focus(); return; }
-      setDone('s2', 'Property manager: ' + this.r.pm.name + ' · ' + this.r.pm.phone);
+      setDone('s2', 'Property manager: ' + this.r.pm.name + ' · ' + this.r.pm.phone + this.notesSummary(notes));
     }
     unlock('s3');
+  },
+
+  // Step 2's collapsed summary shows the access notes too, so the PM can check them before
+  // submitting (they're sent with the order). Long notes are shortened here only; the full
+  // text is still what's submitted. setDone() writes textContent, so no escaping is needed.
+  notesSummary(notes){
+    if(!notes) return '';
+    const NOTES_SUMMARY_MAX = 80;
+    const shown = notes.length > NOTES_SUMMARY_MAX ? notes.slice(0, NOTES_SUMMARY_MAX - 1).trimEnd() + '…' : notes;
+    return ' · Access notes: ' + shown;
   },
 
   async submit(){
