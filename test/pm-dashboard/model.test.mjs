@@ -248,3 +248,23 @@ test('money and labels', () => {
   assert.equal(M.plural(1, 'office'), '1 office');
   assert.equal(M.plural(2, 'person', 'people'), '2 people');
 });
+
+test('Clean-up flags the same name at the same agency, and a secondary email that is another contact\'s email', () => {
+  const base = { status: 'partner', nextStage: 'select', dropIn: 'Not started', created: '2026-11-20T00:00:00Z', edited: '2026-11-20T00:00:00Z', requestIds: [] };
+  const feed = {
+    contacts: [
+      { ...base, id: 'a1', name: 'Swarnim Shah', agency: 'SAVAA Properties', email: 'swarnim.shah@savaaproperties.com.au', secondaryEmail: 'rentals@savaaproperties.com.au' },
+      { ...base, id: 'a2', name: 'Swarnim Shah', agency: null, email: 'rentals@savaaproperties.com.au' },
+      { ...base, id: 'b1', name: 'Yanke Zhou - Sydney Realty Group (Director)', agency: 'Sydney Realty Group', email: 'yanke@sydneyrealtygroup.com.au' },
+      { ...base, id: 'b2', name: 'Yanke Zhou', agency: 'Sydney Realty Group', email: null },
+      { ...base, id: 'c1', name: 'Ujjawal Gupta', agency: 'SAVAA Properties', email: null, secondaryEmail: 'rentals@savaaproperties.com.au' },
+      { ...base, id: 'd1', name: 'Michael Li', agency: 'Sydney Realty Group', email: 'michael@sydneyrealtygroup.com.au' }
+    ],
+    requests: []
+  };
+  const m = M.buildModel(feed, NOW);
+  const ids = m.lists.find((l) => l.key === 'cleanup').ids;
+  for (const id of ['a1', 'a2', 'b1', 'b2']) assert.ok(ids.includes(id), id + ' is flagged');
+  assert.ok(!ids.includes('d1'), 'a colleague at the same agency is not a duplicate');
+  assert.equal(m.byId.get('a1').secondaryEmail, 'rentals@savaaproperties.com.au');
+});
