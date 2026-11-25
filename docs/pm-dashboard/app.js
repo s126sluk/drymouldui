@@ -171,7 +171,7 @@ function issueText(c, dupes) {
   if (c.issue === 'note') return 'The name field holds a note: move it to Next Steps';
   if (c.issue === 'handle') return 'The name field holds an inbox, not a person';
   if (!c.agencyKnown) return c.agency ? 'Agency is “unverified”' : 'No agency recorded';
-  if (dupes) return 'Same email as another contact';
+  if (dupes) return 'Same email or name as another contact: merge them in Notion';
   return '';
 }
 
@@ -482,6 +482,7 @@ function detailsHtml(c) {
   if (c.phone.raw) lines.push((c.phone.kind === 'mobile' ? 'Mobile ' : c.phone.kind === 'landline' ? 'Landline (in “mob #”) ' : 'Phone ') + c.phone.raw);
   else lines.push('No phone number in “mob #”');
   lines.push(c.email ? c.email : 'No email address');
+  if (c.secondaryEmail) lines.push('Also uses ' + c.secondaryEmail);
   const extra = tl && tl.state === 'ok' ? tl.data.details : [];
   return '<section class="glass" style="padding:12px 14px;font-size:13px;line-height:20px"><h2 class="h4" style="margin-bottom:4px">Details</h2>' +
     lines.map((l) => '<p style="overflow-wrap:anywhere">' + esc(l) + '</p>').join('') +

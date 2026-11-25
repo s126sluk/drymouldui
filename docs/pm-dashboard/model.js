@@ -286,7 +286,7 @@ export function buildModel(feed, now) {
       initials: initials(t.display), first: firstName(t.display),
       agency: c.agency || null, office: agencyKnown ? c.agency : NO_AGENCY, agencyKnown,
       status: ACTIVE[c.status] ? c.status : null,
-      email: c.email || null, phone, nextStage: c.nextStage && c.nextStage !== 'select' ? c.nextStage : null,
+      email: c.email || null, secondaryEmail: c.secondaryEmail || null, phone, nextStage: c.nextStage && c.nextStage !== 'select' ? c.nextStage : null,
       stage, drop, dropIn: c.dropIn || null, cells: cadenceCells(stage, drop),
       nextSteps: c.nextSteps || null, nextDay, overdue: nextDay != null && nextDay < today ? today - nextDay : 0,
       kitSynced: !!c.kitSynced, kitSyncedOn: toDay(c.kitSyncedOn), created, createdT: toTime(c.created), edited,
@@ -442,13 +442,27 @@ function cleanupSub(left, dupeEmails, unverified, all) {
   if (unverified) parts.push(unverified + ' no agency');
   return parts.join(' · ') || 'Nothing to tidy';
 }
+// Likely duplicates: two contacts sharing an address (email or secondary email), or the same
+// full name at the same agency (how the portal made the Swarnim Shah pair on 24 Nov 2026).
+// A shared inbox kept as secondary email on several colleagues is fine and is not flagged.
 function duplicateEmails(people) {
-  const seen = new Map();
   const dup = new Set();
+  const seen = new Map();
   for (const c of people) {
     const e = (c.email || '').trim().toLowerCase();
     if (!e) continue;
     if (seen.has(e)) { dup.add(c.id); dup.add(seen.get(e)); } else seen.set(e, c.id);
+  }
+  for (const c of people) {
+    const s = (c.secondaryEmail || '').trim().toLowerCase();
+    if (s && seen.has(s) && seen.get(s) !== c.id) { dup.add(c.id); dup.add(seen.get(s)); }
+  }
+  const byName = new Map();
+  for (const c of people) {
+    const n = String(c.name || '').toLowerCase().replace(/\s+/g, ' ').trim();
+    if (!n || n.indexOf(' ') < 0 || !c.agencyKnown) continue;
+    const k = n + '|' + c.agency;
+    if (byName.has(k)) { dup.add(c.id); dup.add(byName.get(k)); } else byName.set(k, c.id);
   }
   return dup;
 }
